@@ -1,0 +1,28 @@
+import { db } from '@/lib/db'
+import { SettingsForm } from './settings-form'
+
+async function getSettings() {
+  const settings = await db.setting.findMany()
+  
+  const settingsMap: Record<string, string> = {}
+  settings.forEach((s) => {
+    settingsMap[s.key] = s.value
+  })
+  
+  return settingsMap
+}
+
+export default async function SettingsPage() {
+  const settings = await getSettings()
+
+  return (
+    <div className="space-y-6 pb-20 lg:pb-0 max-w-4xl">
+      <div>
+        <h1 className="text-2xl font-bold font-heading">Settings</h1>
+        <p className="text-muted-foreground">Configure your store settings</p>
+      </div>
+
+      <SettingsForm initialSettings={settings} />
+    </div>
+  )
+}
