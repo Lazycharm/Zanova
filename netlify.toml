@@ -1,0 +1,18 @@
+# Netlify configuration for Next.js app
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[dev]
+  command = "npm run dev"
+
+[functions]
+  directory = "netlify/functions"
+
+[build.environment]
+  NODE_VERSION = "18"
+  NEXT_PRIVATE_TARGET = "server"
+  NEXT_PUBLIC_BASE_URL = "/"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
