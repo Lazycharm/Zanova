@@ -6,18 +6,19 @@ import { ProductCard } from '@/components/product-card'
 import { Card, CardContent } from '@/components/ui/card'
 
 interface Favorite {
-  id: string
+  userId: string;
+  productId: string;
   product: {
-    id: string
-    name: string
-    slug: string
-    price: number
-    comparePrice: number | null
-    rating: number
-    reviews: number
-    image: string
-    isFeatured: boolean
-  }
+    id: string;
+    name: string;
+    slug: string;
+    price: number;
+    comparePrice: number | null;
+    rating: number;
+    reviews: number;
+    image: string;
+    isFeatured: boolean;
+  };
 }
 
 export function FavoritesClient({ favorites }: { favorites: Favorite[] }) {
@@ -56,7 +57,7 @@ export function FavoritesClient({ favorites }: { favorites: Favorite[] }) {
           ) : (
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               {favorites.map((fav) => (
-                <ProductCard key={fav.id} product={fav.product} />
+                <ProductCard key={fav.productId} product={fav.product} />
               ))}
             </div>
           )}
