@@ -1,13 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getSession } from '@/lib/auth'
 import { db } from '@/lib/db'
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
-
-    if (!session?.user?.id) {
+    const session = await getSession()
+    if (!session?.userId) {
       return NextResponse.json(
         { message: 'Please login to place an order' },
         { status: 401 }
@@ -36,7 +34,7 @@ export async function POST(request: NextRequest) {
     // Create order
     const order = await db.order.create({
       data: {
-        userId: session.user.id,
+        userId: session.userId,
         orderNumber,
         subtotal,
         shipping: shippingCost,
@@ -96,9 +94,8 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
-
-    if (!session?.user?.id) {
+    const session = await getSession()
+    if (!session?.userId) {
       return NextResponse.json(
         { message: 'Unauthorized' },
         { status: 401 }
@@ -107,7 +104,7 @@ export async function GET(request: NextRequest) {
 
     const orders = await db.order.findMany({
       where: {
-        userId: session.user.id,
+        userId: session.userId,
       },
       include: {
         items: {

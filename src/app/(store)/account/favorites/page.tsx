@@ -20,7 +20,8 @@ async function getUserFavorites(userId: string) {
   })
 
   return favorites.map((fav) => ({
-    id: fav.id,
+    userId: fav.userId,
+    productId: fav.productId,
     product: {
       id: fav.product.id,
       name: fav.product.name,
