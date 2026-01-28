@@ -150,6 +150,7 @@ npm run db:seed
 - Verify all environment variables are set
 - Check build logs for specific errors
 - Ensure `package.json` has correct build script
+- **Permission Errors:** If you see "Permission denied" for Prisma, the `postinstall` script has been removed. Prisma will generate during the build step instead.
 
 ### Database Connection Issues:
 - Verify `DATABASE_URL` uses direct connection (port 5432)
