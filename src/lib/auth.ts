@@ -118,19 +118,41 @@ export async function login(email: string, password: string) {
       return { success: false, error: 'Database connection error. Please contact support.' }
     }
 
-    const user = await db.user.findUnique({
-      where: { email },
-      select: {
-        id: true,
-        email: true,
-        password: true,
-        name: true,
-        role: true,
-        status: true,
-      },
-    })
+    let user
+    try {
+      user = await db.user.findUnique({
+        where: { email },
+        select: {
+          id: true,
+          email: true,
+          password: true,
+          name: true,
+          role: true,
+          status: true,
+        },
+      })
+    } catch (dbError) {
+      console.error('[LOGIN] Database query error:', dbError)
+      return { 
+        success: false, 
+        error: 'Database connection error. Please check your database configuration and ensure it has been seeded with initial data.' 
+      }
+    }
 
     if (!user) {
+      // Check if any users exist at all (to help diagnose seeding issue)
+      try {
+        const userCount = await db.user.count()
+        if (userCount === 0) {
+          console.warn('[LOGIN] No users found in database. Database may need to be seeded.')
+          return { 
+            success: false, 
+            error: 'No users found. Please seed the database by running: npm run db:seed' 
+          }
+        }
+      } catch (countError) {
+        console.error('[LOGIN] Error checking user count:', countError)
+      }
       return { success: false, error: 'Invalid email or password' }
     }
 

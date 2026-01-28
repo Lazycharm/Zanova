@@ -57,10 +57,53 @@ NEXT_PUBLIC_BASE_URL=https://your-site.netlify.app
    - Monitor build logs for any errors
    - Once deployed, test the site functionality
 
+## Database Seeding (IMPORTANT!)
+
+After deployment, you **MUST** seed the database to create the admin user and initial data:
+
+### Option 1: Using Netlify Functions (Recommended)
+Create a one-time seed function or use Netlify's CLI:
+
+```bash
+# Install Netlify CLI if you haven't
+npm install -g netlify-cli
+
+# Login to Netlify
+netlify login
+
+# Link to your site
+netlify link
+
+# Run seed command (requires DATABASE_URL to be set)
+netlify functions:invoke seed --no-identity
+```
+
+### Option 2: Using Netlify Shell/SSH
+1. Go to Netlify Dashboard → Site → Functions
+2. Use Netlify's shell access (if available) or deploy a temporary function
+3. Run: `npm run db:seed`
+
+### Option 3: Manual Database Access
+Connect to your database directly and run the seed script:
+```bash
+# Set DATABASE_URL in your local environment
+export DATABASE_URL="your-database-url"
+
+# Run seed
+npm run db:seed
+```
+
+### Default Admin Credentials (After Seeding):
+- **Email:** `admin@zalora.com` (or value from `ADMIN_EMAIL` env var)
+- **Password:** `admin123` (or value from `ADMIN_PASSWORD` env var)
+
+**⚠️ IMPORTANT:** Change the admin password immediately after first login!
+
 ## Post-Deployment Verification
 
+- [ ] Database seeded with admin user
 - [ ] Homepage loads correctly
-- [ ] Login page works (no demo credentials shown)
+- [ ] Login page works (use admin@zalora.com / admin123)
 - [ ] Country selection page displays correctly
 - [ ] Admin dashboard accessible
 - [ ] Database connections working
