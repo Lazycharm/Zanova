@@ -61,35 +61,50 @@ NEXT_PUBLIC_BASE_URL=https://your-site.netlify.app
 
 After deployment, you **MUST** seed the database to create the admin user and initial data:
 
-### Option 1: Using Netlify Functions (Recommended)
-Create a one-time seed function or use Netlify's CLI:
+### Option 1: Using Seed API Endpoint (Easiest - Recommended)
 
-```bash
-# Install Netlify CLI if you haven't
-npm install -g netlify-cli
+A seed API endpoint has been created at `/api/admin/seed`. You can call it via HTTP:
 
-# Login to Netlify
-netlify login
+**Step 1:** Add `SEED_SECRET_KEY` to Netlify environment variables:
+- Go to Netlify Dashboard → Site Settings → Environment Variables
+- Add: `SEED_SECRET_KEY` = `your-secret-key-here` (use a strong random string)
 
-# Link to your site
-netlify link
+**Step 2:** Call the seed endpoint:
 
-# Run seed command (requires DATABASE_URL to be set)
-netlify functions:invoke seed --no-identity
+**Using GET (easiest):**
+```
+https://your-site.netlify.app/api/admin/seed?key=your-secret-key-here
 ```
 
-### Option 2: Using Netlify Shell/SSH
-1. Go to Netlify Dashboard → Site → Functions
-2. Use Netlify's shell access (if available) or deploy a temporary function
-3. Run: `npm run db:seed`
+**Using POST (more secure):**
+```bash
+curl -X POST https://your-site.netlify.app/api/admin/seed \
+  -H "Authorization: Bearer your-secret-key-here"
+```
+
+Or use any HTTP client (Postman, browser, etc.)
+
+**Note:** The endpoint will check if the database is already seeded and skip if admin user exists.
+
+### Option 2: Using Netlify CLI
+
+```powershell
+# PowerShell (Windows)
+$env:DATABASE_URL = "your-database-url-from-netlify"
+npm run db:seed
+
+# Or get DATABASE_URL from Netlify
+netlify env:get DATABASE_URL
+```
 
 ### Option 3: Manual Database Access
 Connect to your database directly and run the seed script:
 ```bash
 # Set DATABASE_URL in your local environment
-export DATABASE_URL="your-database-url"
+# PowerShell:
+$env:DATABASE_URL = "your-database-url"
 
-# Run seed
+# Then run seed
 npm run db:seed
 ```
 
