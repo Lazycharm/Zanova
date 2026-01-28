@@ -112,6 +112,12 @@ export async function getCurrentUser() {
 
 export async function login(email: string, password: string) {
   try {
+    // Check if database is available
+    if (!process.env.DATABASE_URL) {
+      console.error('[LOGIN] DATABASE_URL not configured')
+      return { success: false, error: 'Database connection error. Please contact support.' }
+    }
+
     const user = await db.user.findUnique({
       where: { email },
       select: {
