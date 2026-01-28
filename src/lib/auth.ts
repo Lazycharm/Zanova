@@ -376,30 +376,45 @@ export async function register(data: {
           name: data.name,
         },
         select: {
-      id: true,
-      email: true,
-      name: true,
-      role: true,
-    },
-  })
+          id: true,
+          email: true,
+          name: true,
+          role: true,
+        },
+      })
+    } catch (createError) {
+      console.error('[REGISTER] Database create error:', createError)
+      const errorMessage = createError instanceof Error ? createError.message : 'Unknown database error'
+      return { 
+        success: false, 
+        error: `Database connection error: ${errorMessage}. Please check your DATABASE_URL configuration.` 
+      }
+    }
 
-  // Auto login after registration
-  const token = await createToken({
-    userId: user.id,
-    email: user.email,
-    role: user.role,
-  })
+    // Auto login after registration
+    const token = await createToken({
+      userId: user.id,
+      email: user.email,
+      role: user.role,
+    })
 
-  const cookieStore = await cookies()
-  cookieStore.set('auth-token', token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    maxAge: 60 * 60 * 24 * 7,
-    path: '/',
-  })
+    const cookieStore = await cookies()
+    cookieStore.set('auth-token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 7,
+      path: '/',
+    })
 
-  return { success: true, user }
+    return { success: true, user }
+  } catch (error) {
+    console.error('[REGISTER] Unexpected error:', error)
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Registration failed. Please try again.' 
+    }
+  }
 }
 
 export function requireAuth(allowedRoles?: UserRole[]) {
