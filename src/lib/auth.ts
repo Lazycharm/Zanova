@@ -50,6 +50,12 @@ export async function getSession(): Promise<JWTPayload | null> {
 
 export async function getCurrentUser() {
   try {
+    // Check if database is available
+    if (!process.env.DATABASE_URL) {
+      console.warn('DATABASE_URL not configured, returning null user')
+      return null
+    }
+
     const session = await getSession()
     if (!session) return null
 

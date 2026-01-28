@@ -72,29 +72,49 @@ export default async function StoreLayout({
 }: {
   children: React.ReactNode
 }) {
-  // Check maintenance mode (cached for 60 seconds)
-  const isMaintenanceMode = await checkMaintenance()
-  
-  if (isMaintenanceMode) {
-    redirect('/maintenance')
-  }
+  try {
+    // Check maintenance mode (cached for 60 seconds)
+    const isMaintenanceMode = await checkMaintenance()
+    
+    if (isMaintenanceMode) {
+      redirect('/maintenance')
+    }
 
-  // Fetch categories for sidebar
-  const categories = await getCategories()
+    // Fetch categories for sidebar
+    const categories = await getCategories()
 
-  return (
-    <div className="h-screen bg-gray-50/30 flex flex-col overflow-hidden">
-      <AuthSync />
-      <Header />
-      <div className="flex flex-1 overflow-hidden">
-        <StoreSidebar categories={categories} />
-        <main className="flex-1 lg:ml-64 pb-20 lg:pb-0 bg-white overflow-y-auto">
-          {children}
-        </main>
+    return (
+      <div className="h-screen bg-gray-50/30 flex flex-col overflow-hidden">
+        <AuthSync />
+        <Header />
+        <div className="flex flex-1 overflow-hidden">
+          <StoreSidebar categories={categories} />
+          <main className="flex-1 lg:ml-64 pb-20 lg:pb-0 bg-white overflow-y-auto">
+            {children}
+          </main>
+        </div>
+        <BottomNav />
+        <ChatWidget />
+        <SearchModal />
       </div>
-      <BottomNav />
-      <ChatWidget />
-      <SearchModal />
-    </div>
-  )
+    )
+  } catch (error) {
+    console.error('[STORE LAYOUT] Error:', error)
+    // Return basic layout without database-dependent features
+    return (
+      <div className="h-screen bg-gray-50/30 flex flex-col overflow-hidden">
+        <AuthSync />
+        <Header />
+        <div className="flex flex-1 overflow-hidden">
+          <StoreSidebar categories={[]} />
+          <main className="flex-1 lg:ml-64 pb-20 lg:pb-0 bg-white overflow-y-auto">
+            {children}
+          </main>
+        </div>
+        <BottomNav />
+        <ChatWidget />
+        <SearchModal />
+      </div>
+    )
+  }
 }
