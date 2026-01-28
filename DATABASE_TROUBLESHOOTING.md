@@ -1,25 +1,68 @@
-# Database Connection Troubleshooting
+# Database Connection Troubleshooting - Supabase + Netlify
 
 ## Issue: 503 Service Unavailable - Database Connection Error
 
 If you're getting a 503 error when trying to login, it means the database connection is failing in Netlify's serverless functions.
 
+## Supabase Connection Strings
+
+Supabase provides **two types** of connection strings:
+
+### 1. Direct Connection (Port 5432) ❌ DON'T USE FOR NETLIFY
+- **Use for:** Local development, persistent connections
+- **Format:** `postgresql://user:password@host.supabase.co:5432/postgres`
+- **Problem:** Serverless functions can't maintain persistent connections
+
+### 2. Connection Pooler (Port 6543) ✅ USE FOR NETLIFY
+- **Use for:** Serverless functions (Netlify, Vercel, etc.)
+- **Format:** `postgresql://user:password@host.pooler.supabase.com:6543/postgres?pgbouncer=true&connection_limit=1`
+- **Why:** Handles connection pooling for short-lived serverless functions
+
+## How to Get Your Supabase Connection Pooler URL
+
+1. **Go to Supabase Dashboard:**
+   - Visit https://app.supabase.com
+   - Select your project
+
+2. **Navigate to Settings:**
+   - Click on "Settings" (gear icon) in the left sidebar
+   - Click on "Database"
+
+3. **Find Connection Pooling:**
+   - Scroll down to "Connection Pooling" section
+   - Look for "Connection string" with "Transaction" mode
+   - It should show port **6543** and hostname ending in `.pooler.supabase.com`
+
+4. **Copy the Connection String:**
+   - It should look like:
+     ```
+     postgresql://postgres.[project-ref]:[password]@aws-0-[region].pooler.supabase.com:6543/postgres?pgbouncer=true
+     ```
+   - Or use the "URI" format if available
+
+5. **Add Connection Limit (Important):**
+   - Append `&connection_limit=1` to the URL
+   - Final format:
+     ```
+     postgresql://postgres.[project-ref]:[password]@aws-0-[region].pooler.supabase.com:6543/postgres?pgbouncer=true&connection_limit=1
+     ```
+
 ## Common Causes & Solutions
 
-### 1. DATABASE_URL Format Issue
+### 1. Using Direct Connection Instead of Pooler
 
-**Problem:** Netlify serverless functions need a connection pooler URL, not a direct database URL.
+**Problem:** You're using the direct connection URL (port 5432) in Netlify.
 
-**Solution:** Use Supabase's connection pooler (port 6543) instead of direct connection (port 5432).
+**Solution:** Switch to the connection pooler URL (port 6543).
 
-**Correct Format:**
+**Correct Format for Netlify:**
 ```
-postgresql://user:password@host.pooler.supabase.com:6543/dbname?pgbouncer=true&connection_limit=1
+postgresql://postgres.[project-ref]:[password]@aws-0-[region].pooler.supabase.com:6543/postgres?pgbouncer=true&connection_limit=1
 ```
 
-**Wrong Format:**
+**Wrong Format (Direct Connection):**
 ```
-postgresql://user:password@host.supabase.com:5432/dbname
+postgresql://postgres.[project-ref]:[password]@db.[project-ref].supabase.co:5432/postgres
 ```
 
 ### 2. Check DATABASE_URL in Netlify

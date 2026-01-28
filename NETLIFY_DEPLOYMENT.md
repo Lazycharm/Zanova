@@ -14,17 +14,26 @@ Make sure to set these in Netlify Dashboard → Site Settings → Environment Va
 
 ### Required Variables:
 ```
-DATABASE_URL=postgresql://user:password@host:6543/dbname?pgbouncer=true&connection_limit=1
+DATABASE_URL=postgresql://postgres.[project-ref]:[password]@aws-0-[region].pooler.supabase.com:6543/postgres?pgbouncer=true&connection_limit=1
 JWT_SECRET=your-secret-key-here
 NEXT_PUBLIC_BASE_URL=https://your-site.netlify.app
+ADMIN_EMAIL=admin@zanova.com
+ADMIN_PASSWORD=admin123
+SEED_SECRET_KEY=your-secret-key-here
 ```
 
 ### Important Notes:
 
-1. **Database Connection:**
-   - Use Supabase connection pooler (port **6543**, not 5432)
-   - Add `pgbouncer=true&connection_limit=1` to your DATABASE_URL
-   - Example: `postgresql://user:pass@aws-0-us-west-2.pooler.supabase.com:6543/dbname?pgbouncer=true&connection_limit=1`
+1. **Database Connection (Supabase):**
+   - **CRITICAL:** Use Supabase's **Connection Pooler** (port **6543**), NOT the direct connection (port 5432)
+   - **Why:** Netlify uses serverless functions that can't maintain persistent connections
+   - **How to get it:**
+     1. Go to Supabase Dashboard → Settings → Database
+     2. Scroll to "Connection Pooling" section
+     3. Copy the "Connection string" with port **6543** and `.pooler.supabase.com` hostname
+     4. Add `&connection_limit=1` at the end
+   - **Example:** `postgresql://postgres.abc123:password@aws-0-us-west-2.pooler.supabase.com:6543/postgres?pgbouncer=true&connection_limit=1`
+   - **❌ DON'T USE:** Direct connection URL with port 5432 (this won't work in serverless functions)
 
 2. **Build Settings:**
    - Build command: `npm run build` (already in netlify.toml)
