@@ -13,23 +13,26 @@ export async function POST(request: Request) {
       )
     }
 
+    console.log(`[LOGIN] Attempting login for: ${email}`)
     const result = await login(email, password)
 
     if (!result.success) {
+      console.log(`[LOGIN] Failed: ${result.error}`)
       return NextResponse.json(
         { error: result.error },
         { status: 401 }
       )
     }
 
+    console.log(`[LOGIN] Success: ${email} (${result.user.role})`)
     return NextResponse.json({ 
       success: true,
       user: result.user 
     })
   } catch (error) {
-    console.error('Login error:', error)
+    console.error('[LOGIN] Error:', error)
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: error instanceof Error ? error.message : 'Internal server error' },
       { status: 500 }
     )
   }

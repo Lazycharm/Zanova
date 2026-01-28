@@ -49,112 +49,138 @@ export async function getSession(): Promise<JWTPayload | null> {
 }
 
 export async function getCurrentUser() {
-  const session = await getSession()
-  if (!session) return null
+  try {
+    const session = await getSession()
+    if (!session) return null
 
-  const user = await db.user.findUnique({
-    where: { id: session.userId },
-    select: {
-      id: true,
-      email: true,
-      name: true,
-      avatar: true,
-      role: true,
-      status: true,
-      balance: true,
-      canSell: true,
-      shop: {
-        select: {
-          id: true,
-          name: true,
-          slug: true,
-          status: true,
+    const user = await db.user.findUnique({
+      where: { id: session.userId },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        avatar: true,
+        role: true,
+        status: true,
+        balance: true,
+        canSell: true,
+        shop: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            status: true,
+          },
         },
       },
-    },
-  })
+    })
 
-  if (!user || user.status !== UserStatus.ACTIVE) return null
+    if (!user || user.status !== UserStatus.ACTIVE) return null
 
-  return {
-    ...user,
-    balance: Number(user.balance),
-    isImpersonating: !!session.impersonatedBy,
-    impersonatedBy: session.impersonatedBy,
+    return {
+      ...user,
+      balance: Number(user.balance),
+      isImpersonating: !!session.impersonatedBy,
+      impersonatedBy: session.impersonatedBy,
+    }
+  } catch (error) {
+    console.error('getCurrentUser error:', error)
+    // Return null on error to prevent crashes
+    return null
   }
 }
 
 export async function login(email: string, password: string) {
-  const user = await db.user.findUnique({
-    where: { email },
-    select: {
-      id: true,
-      email: true,
-      password: true,
-      name: true,
-      role: true,
-      status: true,
-    },
-  })
+  try {
+    const user = await db.user.findUnique({
+      where: { email },
+      select: {
+        id: true,
+        email: true,
+        password: true,
+        name: true,
+        role: true,
+        status: true,
+      },
+    })
 
-  if (!user) {
-    return { success: false, error: 'Invalid email or password' }
-  }
-
-  if (user.status === UserStatus.BANNED) {
-    return { success: false, error: 'Your account has been banned' }
-  }
-
-  if (user.status === UserStatus.SUSPENDED) {
-    return { success: false, error: 'Your account has been suspended' }
-  }
-
-  const isValidPassword = await verifyPassword(password, user.password)
-  if (!isValidPassword) {
-    return { success: false, error: 'Invalid email or password' }
-  }
-
-  // Update last login
-  await db.user.update({
-    where: { id: user.id },
-    data: {
-      lastLoginAt: new Date(),
-    },
-  })
-
-  const token = await createToken({
-    userId: user.id,
-    email: user.email,
-    role: user.role,
-  })
-
-  // Set cookie
-  const cookieStore = await cookies()
-  cookieStore.set('auth-token', token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    maxAge: 60 * 60 * 24 * 7, // 7 days
-    path: '/',
-  })
-
-  // Create session record
-  await db.session.create({
-    data: {
-      userId: user.id,
-      token,
-      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-    },
-  })
-
-  return { 
-    success: true, 
-    user: {
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      role: user.role,
+    if (!user) {
+      return { success: false, error: 'Invalid email or password' }
     }
+
+    if (user.status === UserStatus.BANNED) {
+      return { success: false, error: 'Your account has been banned' }
+    }
+
+    if (user.status === UserStatus.SUSPENDED) {
+      return { success: false, error: 'Your account has been suspended' }
+    }
+
+    const isValidPassword = await verifyPassword(password, user.password)
+    if (!isValidPassword) {
+      return { success: false, error: 'Invalid email or password' }
+    }
+
+    // Update last login
+    try {
+      await db.user.update({
+        where: { id: user.id },
+        data: {
+          lastLoginAt: new Date(),
+        },
+      })
+    } catch (error) {
+      console.error('Error updating last login:', error)
+      // Continue even if update fails
+    }
+
+    const token = await createToken({
+      userId: user.id,
+      email: user.email,
+      role: user.role,
+    })
+
+    // Set cookie
+    try {
+      const cookieStore = await cookies()
+      cookieStore.set('auth-token', token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 60 * 60 * 24 * 7, // 7 days
+        path: '/',
+      })
+    } catch (error) {
+      console.error('Error setting cookie:', error)
+      return { success: false, error: 'Failed to set authentication cookie' }
+    }
+
+    // Create session record
+    try {
+      await db.session.create({
+        data: {
+          userId: user.id,
+          token,
+          expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        },
+      })
+    } catch (error) {
+      console.error('Error creating session:', error)
+      // Continue even if session creation fails - cookie is set
+    }
+
+    return { 
+      success: true, 
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+      }
+    }
+  } catch (error) {
+    console.error('Login function error:', error)
+    return { success: false, error: 'Database connection error. Please try again.' }
   }
 }
 
