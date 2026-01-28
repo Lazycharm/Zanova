@@ -3,6 +3,8 @@ import { getCurrentUser } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { UserDetailsClient } from './user-details-client'
 
+export const dynamic = 'force-dynamic'
+
 async function getUserData(userId: string) {
   const user = await db.user.findUnique({
     where: { id: userId },

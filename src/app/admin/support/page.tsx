@@ -1,6 +1,8 @@
 import { db } from '@/lib/db'
 import { SupportTicketsClient } from './support-client'
 
+export const dynamic = 'force-dynamic'
+
 async function getSupportTickets() {
   const tickets = await db.supportTicket.findMany({
     orderBy: { createdAt: 'desc' },

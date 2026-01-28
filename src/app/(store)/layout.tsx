@@ -19,6 +19,11 @@ async function checkMaintenance() {
     return maintenanceCache.value
   }
   
+  // Skip DB check if DATABASE_URL is not available (build time)
+  if (!process.env.DATABASE_URL) {
+    return false
+  }
+  
   try {
     const setting = await db.setting.findUnique({
       where: { key: 'maintenance_mode' },
@@ -35,6 +40,11 @@ async function checkMaintenance() {
 }
 
 async function getCategories() {
+  // Skip DB check if DATABASE_URL is not available (build time)
+  if (!process.env.DATABASE_URL) {
+    return []
+  }
+  
   try {
     const categories = await db.category.findMany({
       where: {

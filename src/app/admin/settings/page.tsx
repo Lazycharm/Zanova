@@ -1,6 +1,8 @@
 import { db } from '@/lib/db'
 import { SettingsForm } from './settings-form'
 
+export const dynamic = 'force-dynamic'
+
 async function getSettings() {
   const settings = await db.setting.findMany()
   

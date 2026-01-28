@@ -3,6 +3,8 @@ import { getCurrentUser } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { AccountClient } from './account-client'
 
+export const dynamic = 'force-dynamic'
+
 async function getAccountData(userId: string) {
   const [orders, favorites, user, userSellingSetting] = await Promise.all([
     db.order.count({ where: { userId } }),

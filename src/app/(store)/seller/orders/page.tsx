@@ -3,6 +3,8 @@ import { getCurrentUser } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { SellerOrdersClient } from './orders-client'
 
+export const dynamic = 'force-dynamic'
+
 interface SearchParams {
   page?: string
   status?: string

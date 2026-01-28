@@ -3,6 +3,8 @@ import { getCurrentUser } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { SellerProductFormClient } from '../product-form-client'
 
+export const dynamic = 'force-dynamic'
+
 async function getProduct(id: string, userId: string) {
   if (id === 'new') {
     return null

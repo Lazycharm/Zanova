@@ -3,6 +3,8 @@ import { getCurrentUser } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { AdminShopDetailsClient } from './shop-details-client'
 
+export const dynamic = 'force-dynamic'
+
 async function getShopData(shopId: string) {
   const shop = await db.shop.findUnique({
     where: { id: shopId },

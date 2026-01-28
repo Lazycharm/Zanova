@@ -3,6 +3,8 @@ import { getCurrentUser } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { CreateShopClient } from './create-shop-client'
 
+export const dynamic = 'force-dynamic'
+
 export default async function CreateShopPage() {
   const currentUser = await getCurrentUser()
 

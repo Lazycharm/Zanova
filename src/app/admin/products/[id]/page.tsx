@@ -2,6 +2,8 @@ import { db } from '@/lib/db'
 import { notFound } from 'next/navigation'
 import { ProductFormClient } from '../product-form-client'
 
+export const dynamic = 'force-dynamic'
+
 async function getProduct(id: string) {
   if (id === 'new') {
     return null

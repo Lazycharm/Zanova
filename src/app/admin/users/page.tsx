@@ -1,6 +1,8 @@
 import { db } from '@/lib/db'
 import { UsersClient } from './users-client'
 
+export const dynamic = 'force-dynamic'
+
 interface SearchParams {
   page?: string
   search?: string

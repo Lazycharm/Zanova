@@ -3,6 +3,8 @@ import { getCurrentUser } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { AdminNotificationsClient } from './notifications-client'
 
+export const dynamic = 'force-dynamic'
+
 async function getNotifications() {
   const notifications = await db.notification.findMany({
     orderBy: { createdAt: 'desc' },

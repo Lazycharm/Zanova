@@ -3,6 +3,8 @@ import { redirect } from 'next/navigation'
 import { db } from '@/lib/db'
 import { ShopsClient } from './shops-client'
 
+export const dynamic = 'force-dynamic'
+
 interface SearchParams {
   page?: string
   search?: string

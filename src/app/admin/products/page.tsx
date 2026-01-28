@@ -1,6 +1,8 @@
 import { db } from '@/lib/db'
 import { ProductsClient } from './products-client'
 
+export const dynamic = 'force-dynamic'
+
 interface SearchParams {
   page?: string
   search?: string

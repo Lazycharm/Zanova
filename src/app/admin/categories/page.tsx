@@ -1,6 +1,8 @@
 import { db } from '@/lib/db'
 import { CategoriesClient } from './categories-client'
 
+export const dynamic = 'force-dynamic'
+
 async function getCategories() {
   const categories = await db.category.findMany({
     orderBy: { sortOrder: 'asc' },

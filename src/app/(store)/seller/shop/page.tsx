@@ -3,6 +3,8 @@ import { getCurrentUser } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { ShopDetailsClient } from './shop-client'
 
+export const dynamic = 'force-dynamic'
+
 async function getShopStats(shopId: string, shop: { followers: number; totalSales: number }) {
   const today = new Date()
   today.setHours(0, 0, 0, 0)

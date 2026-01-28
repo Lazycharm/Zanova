@@ -3,6 +3,8 @@ import { getCurrentUser } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { WholesaleClient } from './wholesale-client'
 
+export const dynamic = 'force-dynamic'
+
 interface SearchParams {
   page?: string
   category?: string

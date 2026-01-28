@@ -1,6 +1,8 @@
 import { db } from '@/lib/db'
 import { AdminDashboardClient } from './dashboard-client'
 
+export const dynamic = 'force-dynamic'
+
 async function getDashboardStats() {
   try {
     const [

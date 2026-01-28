@@ -3,6 +3,8 @@ import type { Prisma } from '@prisma/client'
 import { db } from '@/lib/db'
 import { ProductsClient } from './products-client'
 
+export const dynamic = 'force-dynamic'
+
 export const metadata = {
   title: 'All Products - ZALORA',
   description: 'Browse our complete product catalog',

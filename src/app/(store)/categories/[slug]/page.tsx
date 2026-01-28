@@ -3,8 +3,7 @@ import { db } from '@/lib/db'
 import { notFound } from 'next/navigation'
 import { CategoryProductsClient } from './category-products-client'
 
-// Revalidate every 5 minutes
-export const revalidate = 300
+export const dynamic = 'force-dynamic'
 
 interface SearchParams {
   page?: string

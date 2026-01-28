@@ -3,6 +3,8 @@ import { getCurrentUser } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { SellerDashboardClient } from './dashboard-client'
 
+export const dynamic = 'force-dynamic'
+
 async function getSellerStats(userId: string, shopId: string | null) {
   if (!shopId) {
     return {
