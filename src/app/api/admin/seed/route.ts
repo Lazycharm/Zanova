@@ -228,9 +228,22 @@ export async function GET(request: Request) {
     const secretKey = searchParams.get('key')
     const expectedKey = process.env.SEED_SECRET_KEY || 'change-this-in-production'
     
+    if (!secretKey) {
+      return NextResponse.json(
+        { 
+          error: 'Unauthorized. Provide ?key=<SEED_SECRET_KEY> query parameter',
+          hint: `If SEED_SECRET_KEY is not set in Netlify, use: ?key=change-this-in-production`
+        },
+        { status: 401 }
+      )
+    }
+    
     if (secretKey !== expectedKey) {
       return NextResponse.json(
-        { error: 'Unauthorized. Provide ?key=<SEED_SECRET_KEY> query parameter' },
+        { 
+          error: 'Unauthorized. Invalid key.',
+          hint: `Expected key: ${expectedKey === 'change-this-in-production' ? 'change-this-in-production (default)' : 'your custom SEED_SECRET_KEY'}`
+        },
         { status: 401 }
       )
     }
