@@ -98,6 +98,11 @@ export function HeroSlider({ slides, autoPlayInterval = 5000 }: HeroSliderProps)
               width={1200}
               height={600}
               className="w-full h-full object-contain"
+              onError={(e) => {
+                // Fallback to placeholder if image fails to load
+                const target = e.target as HTMLImageElement
+                target.src = '/placeholder-product.jpg'
+              }}
               priority={mobileIndex === 0}
               unoptimized
             />
@@ -178,6 +183,11 @@ export function HeroSlider({ slides, autoPlayInterval = 5000 }: HeroSliderProps)
                 className="w-full h-full object-cover"
                 priority={currentPairIndex === 0}
                 unoptimized
+                onError={(e) => {
+                  // Fallback to placeholder if image fails to load
+                  const target = e.target as HTMLImageElement
+                  target.src = '/placeholder-product.jpg'
+                }}
               />
               
               {/* Overlay Content - First Image */}
@@ -241,6 +251,11 @@ export function HeroSlider({ slides, autoPlayInterval = 5000 }: HeroSliderProps)
                   className="w-full h-full object-cover"
                   priority={currentPairIndex === 0}
                   unoptimized
+                  onError={(e) => {
+                    // Fallback to placeholder if image fails to load
+                    const target = e.target as HTMLImageElement
+                    target.src = '/placeholder-product.jpg'
+                  }}
                 />
                 
                 {/* Overlay Content - Second Image */}
