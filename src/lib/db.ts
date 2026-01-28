@@ -10,28 +10,30 @@ const isDatabaseAvailable = !!process.env.DATABASE_URL
 let dbInstance: PrismaClient
 
 if (isDatabaseAvailable) {
-  dbInstance =
-    globalForPrisma.prisma ??
-    new PrismaClient({
-      log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+  // For Netlify serverless functions, create a new PrismaClient instance each time
+  // This prevents connection pooling issues in serverless environments
+  if (process.env.NETLIFY || process.env.NODE_ENV === 'production') {
+    // Serverless environment - create fresh instance
+    dbInstance = new PrismaClient({
+      log: ['error'],
       datasources: {
         db: {
           url: process.env.DATABASE_URL,
         },
       },
-      // Optimize for serverless environments (Netlify Functions)
-      // Connection timeout settings for serverless functions
-      __internal: {
-        engine: {
-          connectTimeout: 10000, // 10 seconds
-          queryTimeout: 20000, // 20 seconds
-        },
-      },
     })
-
-  // In production (Netlify), don't reuse the global instance to avoid connection issues
-  // Each serverless function invocation should create a fresh connection
-  if (process.env.NODE_ENV !== 'production') {
+  } else {
+    // Development - reuse global instance
+    dbInstance =
+      globalForPrisma.prisma ??
+      new PrismaClient({
+        log: ['query', 'error', 'warn'],
+        datasources: {
+          db: {
+            url: process.env.DATABASE_URL,
+          },
+        },
+      })
     globalForPrisma.prisma = dbInstance
   }
 } else {
