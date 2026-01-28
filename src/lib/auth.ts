@@ -340,23 +340,42 @@ export async function register(data: {
   password: string
   name: string
 }) {
-  const existingUser = await db.user.findUnique({
-    where: { email: data.email },
-  })
+  try {
+    // Check if database is available
+    if (!process.env.DATABASE_URL) {
+      console.error('[REGISTER] DATABASE_URL not configured')
+      return { success: false, error: 'Database connection error. Please contact support.' }
+    }
 
-  if (existingUser) {
-    return { success: false, error: 'Email already registered' }
-  }
+    let existingUser
+    try {
+      existingUser = await db.user.findUnique({
+        where: { email: data.email },
+      })
+    } catch (dbError) {
+      console.error('[REGISTER] Database query error:', dbError)
+      const errorMessage = dbError instanceof Error ? dbError.message : 'Unknown database error'
+      return { 
+        success: false, 
+        error: `Database connection error: ${errorMessage}. Please check your DATABASE_URL configuration.` 
+      }
+    }
 
-  const hashedPassword = await hashPassword(data.password)
+    if (existingUser) {
+      return { success: false, error: 'Email already registered' }
+    }
 
-  const user = await db.user.create({
-    data: {
-      email: data.email,
-      password: hashedPassword,
-      name: data.name,
-    },
-    select: {
+    const hashedPassword = await hashPassword(data.password)
+
+    let user
+    try {
+      user = await db.user.create({
+        data: {
+          email: data.email,
+          password: hashedPassword,
+          name: data.name,
+        },
+        select: {
       id: true,
       email: true,
       name: true,

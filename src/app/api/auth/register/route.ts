@@ -28,23 +28,52 @@ export async function POST(request: Request) {
       )
     }
 
-    const result = await register({ name, email, password })
-
-    if (!result.success) {
+    // Check if DATABASE_URL is configured
+    if (!process.env.DATABASE_URL) {
+      console.error('[REGISTER] DATABASE_URL not configured')
       return NextResponse.json(
-        { error: result.error },
-        { status: 400 }
+        { 
+          error: 'Database not configured. Please set DATABASE_URL environment variable.',
+          code: 'DATABASE_NOT_CONFIGURED'
+        },
+        { status: 503 }
       )
     }
 
+    console.log(`[REGISTER] Attempting registration for: ${email}`)
+    const result = await register({ name, email, password })
+
+    if (!result.success) {
+      console.log(`[REGISTER] Failed: ${result.error}`)
+      
+      // Check if it's a database connection error
+      let statusCode = 400
+      let errorMessage = result.error || 'Registration failed'
+      
+      if (errorMessage.includes('Database connection') || errorMessage.includes('DATABASE_URL')) {
+        statusCode = 503
+        errorMessage = 'Database connection error. Please check your database configuration.'
+      }
+      
+      return NextResponse.json(
+        { error: errorMessage },
+        { status: statusCode }
+      )
+    }
+
+    console.log(`[REGISTER] Success: ${email}`)
     return NextResponse.json({ 
       success: true,
       user: result.user 
     })
   } catch (error) {
-    console.error('Registration error:', error)
+    console.error('[REGISTER] Error:', error)
+    const errorMessage = error instanceof Error ? error.message : 'Internal server error'
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { 
+        error: errorMessage,
+        code: 'INTERNAL_ERROR'
+      },
       { status: 500 }
     )
   }
