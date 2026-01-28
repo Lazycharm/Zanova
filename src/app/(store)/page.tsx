@@ -69,7 +69,6 @@ export default async function HomePage() {
     { id: '9', name: 'Girls', slug: 'girls', icon: 'solar:user-bold', image: null, color: '#F1F8E9', iconColor: '#689F38' },
     { id: '10', name: 'Boys', slug: 'boys', icon: 'solar:user-bold', image: null, color: '#EFEBE9', iconColor: '#5D4037' },
     { id: '11', name: 'Global', slug: 'global', icon: 'solar:globe-bold', image: null, color: '#E0F7FA', iconColor: '#0097A7' },
-    { id: '12', name: 'More', slug: 'more', icon: 'solar:menu-dots-bold', image: null, color: '#F5F5F5', iconColor: '#808089' },
   ]
 
   const defaultProducts = [
