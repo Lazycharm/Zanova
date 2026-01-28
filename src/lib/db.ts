@@ -4,9 +4,8 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
 }
 
-// Simple Prisma Client setup - works with Supabase on Netlify
-// Netlify runs Next.js API routes as serverless functions automatically
-// Just use Supabase connection pooler URL and Prisma works fine
+// Prisma Client setup - works with Supabase
+// Standard Node.js hosting (Hostinger) - can use direct Supabase connection
 const dbInstance =
   globalForPrisma.prisma ??
   new PrismaClient({
