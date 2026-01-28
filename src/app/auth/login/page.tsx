@@ -30,6 +30,7 @@ export default function LoginPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
+        credentials: 'include', // Important for cookies to be set
       })
 
       const data = await res.json()
@@ -39,7 +40,9 @@ export default function LoginPage() {
       }
 
       // Fetch user data
-      const userRes = await fetch('/api/auth/me')
+      const userRes = await fetch('/api/auth/me', {
+        credentials: 'include', // Important for cookies to be sent
+      })
       const userData = await userRes.json()
       
       if (userRes.ok && userData.user) {
