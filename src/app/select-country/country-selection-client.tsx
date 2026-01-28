@@ -72,9 +72,14 @@ export function CountrySelection() {
 
   useEffect(() => {
     // Check if country was already selected - if so, redirect to homepage
+    // But only redirect after a small delay to prevent flash
     const countrySelected = localStorage.getItem('country-selected')
     if (countrySelected === 'true') {
-      router.push('/')
+      // Small delay to allow page to render first
+      const timer = setTimeout(() => {
+        router.push('/')
+      }, 100)
+      return () => clearTimeout(timer)
     }
   }, [router])
 

@@ -29,6 +29,10 @@ export function LoadingScreen() {
 
     // Show welcome page ONLY for first-time visitors (not on reload)
     if (!hasSeenWelcome) {
+      // Show loading animation first
+      setIsAnimating(true)
+      setShowLanding(false)
+      
       const timer = setTimeout(() => {
         setIsAnimating(false)
         setShowLanding(true)
