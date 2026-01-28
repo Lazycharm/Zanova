@@ -24,7 +24,7 @@ interface SearchResult {
 export function SearchModal() {
   const router = useRouter()
   const { t } = useLanguage()
-  const searchOpen = useUIStore((state) => state.searchOpen)
+  const searchOpen = useUIStore((state) => state.isSearchOpen)
   const setSearchOpen = useUIStore((state) => state.setSearchOpen)
   
   const [query, setQuery] = useState('')

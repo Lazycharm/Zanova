@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
+import Link from 'next/link'
 import { Icon } from '@iconify/react'
 import { ProductCard } from './product-card'
 
@@ -58,12 +59,12 @@ export function ProductSlider({ products, title, viewAllLink = '/products' }: Pr
   }
 
   return (
-    <div className="relative">
+    <div className="relative bg-white border border-gray-200/60 rounded-lg p-4 shadow-sm">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="font-bold text-lg text-foreground font-heading">{title}</h3>
-        <a href={viewAllLink} className="text-sm text-primary hover:underline">
+        <h3 className="font-semibold text-lg text-gray-900">{title}</h3>
+        <Link href={viewAllLink} className="text-sm text-blue-600 hover:text-blue-700 hover:underline font-normal transition-colors">
           View All
-        </a>
+        </Link>
       </div>
 
       <div className="relative group">
@@ -71,9 +72,9 @@ export function ProductSlider({ products, title, viewAllLink = '/products' }: Pr
         {showLeftArrow && (
           <button
             onClick={() => scroll('left')}
-            className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-background/90 hover:bg-background shadow-lg rounded-full p-2 transition-all opacity-0 group-hover:opacity-100"
+            className="absolute left-2 top-1/2 -translate-y-1/2 z-10 bg-white/95 hover:bg-white shadow-lg rounded-full p-2 transition-all opacity-0 group-hover:opacity-100 border border-gray-200"
           >
-            <Icon icon="solar:alt-arrow-left-linear" className="size-5 text-foreground" />
+            <Icon icon="solar:alt-arrow-left-linear" className="size-4 text-gray-700" />
           </button>
         )}
 
@@ -81,16 +82,16 @@ export function ProductSlider({ products, title, viewAllLink = '/products' }: Pr
         {showRightArrow && (
           <button
             onClick={() => scroll('right')}
-            className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-background/90 hover:bg-background shadow-lg rounded-full p-2 transition-all opacity-0 group-hover:opacity-100"
+            className="absolute right-2 top-1/2 -translate-y-1/2 z-10 bg-white/95 hover:bg-white shadow-lg rounded-full p-2 transition-all opacity-0 group-hover:opacity-100 border border-gray-200"
           >
-            <Icon icon="solar:alt-arrow-right-linear" className="size-5 text-foreground" />
+            <Icon icon="solar:alt-arrow-right-linear" className="size-4 text-gray-700" />
           </button>
         )}
 
         {/* Products Container */}
         <div
           ref={scrollContainerRef}
-          className="flex gap-4 overflow-x-auto scrollbar-hide scroll-smooth pb-2"
+          className="flex gap-4 overflow-x-auto scrollbar-hide scroll-smooth"
           style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
         >
           {products.map((product) => (

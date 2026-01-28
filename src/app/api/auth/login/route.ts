@@ -16,7 +16,7 @@ export async function POST(request: Request) {
     console.log(`[LOGIN] Attempting login for: ${email}`)
     const result = await login(email, password)
 
-    if (!result.success) {
+    if (!result.success || !result.user) {
       console.log(`[LOGIN] Failed: ${result.error}`)
       return NextResponse.json(
         { error: result.error },

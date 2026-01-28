@@ -151,13 +151,15 @@ export async function copyToClipboard(text: string): Promise<boolean> {
   }
 }
 
-export function debounce<T extends (...args: unknown[]) => void>(
+export function debounce<T extends (...args: any[]) => any>(
   func: T,
   wait: number
 ): (...args: Parameters<T>) => void {
   let timeout: NodeJS.Timeout | null = null
   return (...args: Parameters<T>) => {
     if (timeout) clearTimeout(timeout)
-    timeout = setTimeout(() => func(...args), wait)
+    timeout = setTimeout(() => {
+      void func(...args)
+    }, wait)
   }
 }

@@ -53,39 +53,53 @@ export async function getCurrentUser() {
     const session = await getSession()
     if (!session) return null
 
-    const user = await db.user.findUnique({
-      where: { id: session.userId },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        avatar: true,
-        role: true,
-        status: true,
-        balance: true,
-        canSell: true,
-        shop: {
-          select: {
-            id: true,
-            name: true,
-            slug: true,
-            status: true,
+    // Check if session is expired
+    if (session.exp && session.exp < Date.now() / 1000) {
+      return null
+    }
+
+    const [user, userSellingSetting] = await Promise.all([
+      db.user.findUnique({
+        where: { id: session.userId },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          avatar: true,
+          role: true,
+          status: true,
+          balance: true,
+          canSell: true,
+          shop: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+              status: true,
+            },
           },
         },
-      },
-    })
+      }),
+      db.setting.findUnique({
+        where: { key: 'user_selling_enabled' },
+      }),
+    ])
 
     if (!user || user.status !== UserStatus.ACTIVE) return null
+
+    const userSellingEnabled = userSellingSetting?.value === 'true'
 
     return {
       ...user,
       balance: Number(user.balance),
+      canSell: user.canSell && userSellingEnabled, // Only true if both are enabled
       isImpersonating: !!session.impersonatedBy,
       impersonatedBy: session.impersonatedBy,
     }
   } catch (error) {
     console.error('getCurrentUser error:', error)
     // Return null on error to prevent crashes
+    // Database errors should not cause auth failures - let middleware handle token validation
     return null
   }
 }

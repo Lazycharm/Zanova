@@ -61,6 +61,11 @@ const menuItems = [
     icon: 'solar:chat-round-dots-bold',
   },
   {
+    title: 'Notifications',
+    href: '/admin/notifications',
+    icon: 'solar:bell-bing-bold',
+  },
+  {
     title: 'CMS Pages',
     href: '/admin/pages',
     icon: 'solar:document-text-bold',

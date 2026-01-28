@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { getCurrentUser } from '@/lib/auth'
 import { AdminSidebar } from '@/components/admin/sidebar'
 import { AdminHeader } from '@/components/admin/header'
+import { AuthSync } from '@/components/auth-sync'
 
 export default async function AdminLayout({
   children,
@@ -26,6 +27,7 @@ export default async function AdminLayout({
 
     return (
       <div className="min-h-screen bg-background">
+        <AuthSync />
         <AdminSidebar user={user} />
         <div className="lg:pl-64">
           <AdminHeader user={user} />

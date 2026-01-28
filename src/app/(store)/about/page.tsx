@@ -2,6 +2,9 @@ import { db } from '@/lib/db'
 import { notFound } from 'next/navigation'
 import { AboutPageClient } from './about-client'
 
+// Avoid prerender-time DB access on deploy/build environments.
+export const dynamic = 'force-dynamic'
+
 export const metadata = {
   title: 'About Us - ZALORA',
   description: 'Learn more about ZALORA Fashion and our mission',

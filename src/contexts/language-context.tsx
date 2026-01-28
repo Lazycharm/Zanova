@@ -28,7 +28,9 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   }
 
   const t = (key: TranslationKey): string => {
-    return translations[language][key] || translations.en[key] || key
+    const current = translations[language] as Partial<Record<TranslationKey, string>>
+    const fallback = translations.en as Partial<Record<TranslationKey, string>>
+    return current[key] ?? fallback[key] ?? key
   }
 
   return (

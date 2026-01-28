@@ -9,23 +9,26 @@ import { Button } from '@/components/ui/button'
 export function LoadingScreen() {
   const [showLanding, setShowLanding] = useState(false)
   const [isAnimating, setIsAnimating] = useState(true)
+  const [isRedirecting, setIsRedirecting] = useState(false)
   const router = useRouter()
   const pathname = usePathname()
 
   useEffect(() => {
-    // Check if user has already visited
-    const hasVisited = localStorage.getItem('has-visited')
+    // Check if user has already seen the welcome page
+    const hasSeenWelcome = localStorage.getItem('has-seen-welcome')
     const isCountryPage = pathname === '/select-country'
+    const isHomePage = pathname === '/'
 
-    // Don't show landing page on country selection or other pages
-    if (isCountryPage || pathname !== '/') {
+    // Don't show welcome page on country selection or other pages
+    if (isCountryPage || !isHomePage) {
       setShowLanding(false)
       setIsAnimating(false)
+      setIsRedirecting(false)
       return
     }
 
-    // Show landing page for first-time visitors
-    if (!hasVisited) {
+    // Show welcome page ONLY for first-time visitors (not on reload)
+    if (!hasSeenWelcome) {
       const timer = setTimeout(() => {
         setIsAnimating(false)
         setShowLanding(true)
@@ -33,24 +36,27 @@ export function LoadingScreen() {
 
       return () => clearTimeout(timer)
     } else {
-      // Hide immediately for returning visitors
+      // Hide immediately for returning visitors or on reload
       setShowLanding(false)
       setIsAnimating(false)
+      setIsRedirecting(false)
     }
   }, [pathname])
 
   const handleSettleIn = () => {
-    setShowLanding(false)
-    setIsAnimating(false)
-    localStorage.setItem('has-visited', 'true')
-    router.push('/select-country')
+    // Mark that we're redirecting to prevent flash
+    setIsRedirecting(true)
+    // Mark that user has seen the welcome page (prevents showing on reload)
+    localStorage.setItem('has-seen-welcome', 'true')
+    // Use window.location for immediate redirect (prevents homepage flash)
+    window.location.href = '/select-country'
   }
 
   // Don't show anything if not needed
-  if (!isAnimating && !showLanding) return null
+  if (!isAnimating && !showLanding && !isRedirecting) return null
 
   // Show initial loading animation
-  if (isAnimating && !showLanding) {
+  if (isAnimating && !showLanding && !isRedirecting) {
     return (
       <div className="fixed inset-0 bg-white flex items-center justify-center z-[9999]">
         <div className="relative w-[200px] h-[200px] flex items-center justify-center">

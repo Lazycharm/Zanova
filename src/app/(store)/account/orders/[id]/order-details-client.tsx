@@ -29,7 +29,7 @@ interface Order {
   orderNumber: string
   status: string
   paymentStatus: string
-  paymentMethod: string
+  paymentMethod: string | null
   total: number
   subtotal: number
   tax: number
@@ -230,7 +230,7 @@ export function OrderDetailsClient({ order }: OrderDetailsClientProps) {
                 <Button asChild className="w-full" variant="outline">
                   <Link href="/account/orders">
                     <Icon icon="solar:arrow-left-linear" className="mr-2 size-4" />
-                    {t('back')} to {t('orders')}
+                    {t('back')} to {t('myOrders')}
                   </Link>
                 </Button>
                 {order.status === 'DELIVERED' && (

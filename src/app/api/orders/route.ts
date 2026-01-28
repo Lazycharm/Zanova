@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
 import { db } from '@/lib/db'
+import { createNotification } from '@/lib/notifications'
 
 export async function POST(request: NextRequest) {
   try {
@@ -75,8 +76,27 @@ export async function POST(request: NextRequest) {
       },
       include: {
         items: true,
+        user: {
+          select: {
+            id: true,
+          },
+        },
       },
     })
+
+    // Create notification for order placement
+    try {
+      await createNotification({
+        userId: order.user.id,
+        title: 'Order Placed',
+        message: `Your order ${order.orderNumber} has been placed successfully`,
+        type: 'order',
+        link: `/account/orders/${order.id}`,
+      })
+    } catch (error) {
+      console.error('Error creating notification:', error)
+      // Don't fail the request if notification creation fails
+    }
 
     return NextResponse.json({
       message: 'Order placed successfully',

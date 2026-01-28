@@ -30,7 +30,7 @@ export function AccountClient({ user, stats }: AccountClientProps) {
   const menuItems = [
     { 
       icon: 'solar:shop-2-bold', 
-      label: 'Wholesale Management', 
+      label: 'Shop Management', 
       href: '/account/wholesale',
       color: 'text-blue-500',
       show: user.canSell,

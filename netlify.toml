@@ -1,18 +1,15 @@
-# Netlify configuration for Next.js app
+# Netlify configuration for Next.js 14 App Router
 [build]
   command = "npm run build"
   publish = ".next"
 
 [dev]
   command = "npm run dev"
-
-[functions]
-  directory = "netlify/functions"
+  port = 3000
 
 [build.environment]
   NODE_VERSION = "18"
-  NEXT_PRIVATE_TARGET = "server"
-  NEXT_PUBLIC_BASE_URL = "/"
+  NPM_FLAGS = "--legacy-peer-deps"
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"

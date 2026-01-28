@@ -2,6 +2,9 @@ import { db } from '@/lib/db'
 import { notFound } from 'next/navigation'
 import { MerchantAgreementClient } from './merchant-agreement-client'
 
+// Avoid prerender-time DB access on deploy/build environments.
+export const dynamic = 'force-dynamic'
+
 export const metadata = {
   title: 'Merchant Agreement - ZALORA',
   description: 'Merchant agreement and terms for sellers on ZALORA',

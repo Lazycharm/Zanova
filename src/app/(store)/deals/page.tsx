@@ -2,6 +2,9 @@ import { Suspense } from 'react'
 import { db } from '@/lib/db'
 import { DealsClient } from './deals-client'
 
+// Avoid prerender-time DB access on deploy/build environments.
+export const dynamic = 'force-dynamic'
+
 export const metadata = {
   title: 'Deals & Sales - ZALORA',
   description: 'Best deals and discounts on fashion products',

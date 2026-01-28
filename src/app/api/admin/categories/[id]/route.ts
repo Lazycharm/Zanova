@@ -70,11 +70,19 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Unassign products from this category
-    await db.product.updateMany({
+    // CategoryId is required on Product (non-nullable). If products exist, block deletion.
+    const productsInCategory = await db.product.count({
       where: { categoryId: params.id },
-      data: { categoryId: null },
     })
+    if (productsInCategory > 0) {
+      return NextResponse.json(
+        {
+          error:
+            'Cannot delete this category because it has products. Move products to another category first.',
+        },
+        { status: 400 }
+      )
+    }
 
     // Delete the category
     await db.category.delete({

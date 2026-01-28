@@ -1,4 +1,4 @@
-import { PrismaClient, UserRole, UserStatus, ProductStatus, ShopStatus } from '@prisma/client'
+import { PrismaClient, UserRole, UserStatus, ProductStatus, ShopStatus, ShopLevel } from '@prisma/client'
 import bcrypt from 'bcryptjs'
 
 const prisma = new PrismaClient()
@@ -56,19 +56,23 @@ async function main() {
   })
   console.log('✅ Demo seller created:', seller.email)
 
-  // Create seller's shop
-  const shop = await prisma.shop.upsert({
-    where: { userId: seller.id },
-    update: {},
-    create: {
-      userId: seller.id,
-      name: 'Fashion Hub',
-      slug: 'fashion-hub',
-      description: 'Premium fashion items for everyone',
-      status: ShopStatus.ACTIVE,
-    },
-  })
-  console.log('✅ Demo shop created:', shop.name)
+  // Create seller's shop (commented out - remove demo data)
+  // const shop = await prisma.shop.upsert({
+  //   where: { userId: seller.id },
+  //   update: {},
+  //   create: {
+  //     userId: seller.id,
+  //     name: 'Fashion Hub',
+  //     slug: 'fashion-hub',
+  //     description: 'Premium fashion items for everyone',
+  //     status: ShopStatus.ACTIVE,
+  //     level: ShopLevel.GOLD,
+  //   },
+  // })
+  // console.log('✅ Demo shop created:', shop.name)
+  
+  // Set shop to null for products (no demo shop)
+  const shop = null
 
   // Create categories
   const categories = [
@@ -116,7 +120,7 @@ async function main() {
       comparePrice: 160,
       stock: 50,
       categoryId: menShoesCategory!.id,
-      shopId: shop.id,
+      shopId: shop?.id || null,
       status: ProductStatus.PUBLISHED,
       isFeatured: true,
       rating: 4.8,
@@ -132,7 +136,7 @@ async function main() {
       comparePrice: 30,
       stock: 200,
       categoryId: menClothingCategory!.id,
-      shopId: shop.id,
+      shopId: shop?.id || null,
       status: ProductStatus.PUBLISHED,
       isFeatured: true,
       rating: 4.5,
@@ -148,7 +152,7 @@ async function main() {
       comparePrice: null,
       stock: 75,
       categoryId: accessoriesCategory!.id,
-      shopId: shop.id,
+      shopId: shop?.id || null,
       status: ProductStatus.PUBLISHED,
       isFeatured: true,
       rating: 4.9,
@@ -164,7 +168,7 @@ async function main() {
       comparePrice: 160,
       stock: 100,
       categoryId: accessoriesCategory!.id,
-      shopId: shop.id,
+      shopId: shop?.id || null,
       status: ProductStatus.PUBLISHED,
       isFeatured: true,
       rating: 4.7,

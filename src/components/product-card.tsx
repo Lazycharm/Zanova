@@ -50,92 +50,40 @@ export function ProductCard({ product }: ProductCardProps) {
     : 0
 
   return (
-    <Link href={`/products/${product.slug}`}>
-      <Card className="overflow-hidden group hover:shadow-lg transition-all h-full">
+    <Link href={`/products/${product.slug}`} className="block">
+      <div className="bg-white rounded-lg overflow-hidden border border-gray-200/60 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 h-full flex flex-col group">
         {/* Product Image */}
-        <div className="aspect-square relative bg-muted">
+        <div className="aspect-[4/5] relative bg-gray-50 overflow-hidden">
           <Image
             src={product.image}
             alt={product.name}
             fill
-            className="object-cover group-hover:scale-110 transition-transform duration-300"
+            className="object-cover group-hover:scale-[1.02] transition-transform duration-300"
             loading="lazy"
-            sizes="(max-width: 768px) 50vw, (max-width: 1200px) 25vw, 20vw"
+            sizes="(max-width: 768px) 160px, 200px"
           />
-          
-          {/* Badges */}
-          <div className="absolute top-2 left-2 flex flex-col gap-1">
-            {product.isFeatured && (
-              <Badge className="bg-primary text-primary-foreground">
-                <Icon icon="solar:star-bold" className="size-3 mr-1" />
-                Featured
-              </Badge>
-            )}
-            {discount > 0 && (
-              <Badge variant="destructive">-{discount}%</Badge>
-            )}
-          </div>
-
-          {/* Quick Add Button - Desktop */}
-          <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity hidden lg:block">
-            <Button
-              size="icon"
-              className="rounded-full"
-              onClick={handleAddToCart}
-            >
-              <Icon icon="solar:cart-plus-bold" className="size-5" />
-            </Button>
-          </div>
         </div>
 
         {/* Product Info */}
-        <CardContent className="p-3">
-          {/* Category */}
-          {product.categoryName && (
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">
-              {product.categoryName}
-            </p>
-          )}
-
+        <div className="p-3.5 flex flex-col flex-1">
           {/* Product Name */}
-          <h3 className="font-medium text-sm line-clamp-2 mb-2 group-hover:text-primary transition-colors min-h-[40px]">
+          <h3 className="text-sm font-normal text-gray-900 line-clamp-2 mb-2.5 min-h-[40px] leading-snug">
             {product.name}
           </h3>
 
-          {/* Rating */}
-          {product.rating !== undefined && product.reviews !== undefined && (
-            <div className="flex items-center gap-1 mb-2">
-              <div className="flex items-center">
-                <Icon icon="solar:star-bold" className="size-3 text-amber-400" />
-                <span className="text-xs font-medium ml-1">{product.rating.toFixed(1)}</span>
-              </div>
-              <span className="text-xs text-muted-foreground">({product.reviews})</span>
-            </div>
-          )}
-
           {/* Price */}
-          <div className="flex items-center justify-between">
+          <div className="mt-auto">
             <div className="flex items-baseline gap-2">
-              <span className="font-bold text-primary">{formatPrice(product.price)}</span>
+              <span className="text-base font-semibold text-gray-900">{formatPrice(product.price)}</span>
               {product.comparePrice && (
-                <span className="text-xs text-muted-foreground line-through">
+                <span className="text-xs text-gray-500 line-through">
                   {formatPrice(product.comparePrice)}
                 </span>
               )}
             </div>
           </div>
-
-          {/* Mobile Add to Cart */}
-          <Button
-            size="sm"
-            className="w-full mt-3 lg:hidden"
-            onClick={handleAddToCart}
-          >
-            <Icon icon="solar:cart-plus-bold" className="size-4 mr-1" />
-            Add to Cart
-          </Button>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </Link>
   )
 }

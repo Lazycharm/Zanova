@@ -25,7 +25,8 @@ export function CategoryIcon({ src, alt, icon, slug, size = 48 }: CategoryIconPr
       <div className="w-full h-full flex items-center justify-center">
         <Icon
           icon={icon || 'solar:box-bold'}
-          className="size-12 lg:size-16"
+          className="text-gray-500"
+          style={{ fontSize: `${size * 0.6}px` }}
         />
       </div>
     )
@@ -37,7 +38,7 @@ export function CategoryIcon({ src, alt, icon, slug, size = 48 }: CategoryIconPr
         src={imageSrc}
         alt={alt}
         fill
-        className="object-contain p-2"
+        className="object-contain p-2.5"
         onError={() => {
           if (src && !hasError) {
             // First error: uploaded image failed, try static image

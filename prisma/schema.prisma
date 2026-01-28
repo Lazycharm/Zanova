@@ -101,6 +101,13 @@ enum ShopStatus {
   CLOSED
 }
 
+enum ShopLevel {
+  BRONZE
+  SILVER
+  GOLD
+  PLATINUM
+}
+
 model Shop {
   id          String     @id @default(cuid())
   userId      String     @unique
@@ -110,10 +117,12 @@ model Shop {
   logo        String?
   banner      String?
   status      ShopStatus @default(PENDING)
+  level       ShopLevel  @default(BRONZE)
   rating      Decimal    @default(0) @db.Decimal(2, 1)
   totalSales  Int        @default(0)
   balance     Decimal    @default(0) @db.Decimal(12, 2)
   commissionRate Decimal @default(10) @db.Decimal(5, 2) // Platform commission %
+  followers   Int        @default(0) // Number of followers (can be edited by admin)
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
 
@@ -123,6 +132,7 @@ model Shop {
 
   @@index([slug])
   @@index([status])
+  @@index([level])
 }
 
 // ==================== PRODUCTS & CATEGORIES ====================

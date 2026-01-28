@@ -17,6 +17,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { getInitials } from '@/lib/utils'
 import { LanguageSelector } from '@/components/language-selector'
 import { useLanguage } from '@/contexts/language-context'
+import { NotificationsDropdown } from '@/components/notifications-dropdown'
 
 export function Header() {
   const { t } = useLanguage()
@@ -25,41 +26,41 @@ export function Header() {
   const setSearchOpen = useUIStore((state) => state.setSearchOpen)
 
   return (
-    <header className="sticky top-0 z-40 w-full bg-white border-b border-border hidden lg:block">
-      <div className="container mx-auto px-4">
-        <div className="flex h-16 items-center justify-between gap-4">
+    <header className="sticky top-0 z-40 w-full bg-white border-b border-gray-200/60 hidden lg:block">
+      <div className="container mx-auto px-6">
+        <div className="flex h-14 items-center justify-between gap-6">
           {/* Logo - Left */}
           <Link href="/" className="flex items-center flex-shrink-0">
             <Image
               src="/images/logo.png"
               alt="ZALORA Fashion"
-              width={140}
-              height={40}
+              width={130}
+              height={36}
               className="object-contain"
               priority
             />
           </Link>
 
           {/* Search Bar - Center */}
-          <div className="flex-1 flex items-center gap-2 max-w-2xl mx-8">
+          <div className="flex-1 flex items-center gap-2 max-w-2xl mx-6">
             <div className="flex-1 relative">
               <input
                 type="text"
                 placeholder="100% selected good products"
                 onClick={() => setSearchOpen(true)}
-                className="w-full px-4 py-2 pr-12 bg-gray-50 border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                className="w-full px-4 py-2 pr-11 bg-gray-50/80 border border-gray-200 rounded-md text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-gray-300 focus:bg-white transition-colors"
                 readOnly
               />
               <Icon 
                 icon="solar:magnifer-linear" 
-                className="absolute right-3 top-1/2 -translate-y-1/2 size-5 text-muted-foreground pointer-events-none" 
+                className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-gray-400 pointer-events-none" 
               />
             </div>
             <Button
               onClick={() => setSearchOpen(true)}
               variant="outline"
               size="sm"
-              className="whitespace-nowrap px-3"
+              className="whitespace-nowrap px-4 py-2 h-9 text-sm font-normal bg-blue-600 text-white border-blue-600 hover:bg-blue-700 hover:border-blue-700 rounded-md transition-colors"
             >
               Search Products
             </Button>
@@ -67,28 +68,28 @@ export function Header() {
               onClick={() => setSearchOpen(true)}
               variant="outline"
               size="sm"
-              className="whitespace-nowrap px-3"
+              className="whitespace-nowrap px-4 py-2 h-9 text-sm font-normal bg-blue-600 text-white border-blue-600 hover:bg-blue-700 hover:border-blue-700 rounded-md transition-colors"
             >
               Search Store
             </Button>
           </div>
 
           {/* Actions - Right */}
-          <div className="flex items-center gap-1 flex-shrink-0">
+          <div className="flex items-center gap-2 flex-shrink-0">
             {/* Home */}
-            <Link href="/">
-              <Button variant="ghost" size="icon" title="Home">
-                <Icon icon="solar:home-2-linear" className="size-6" />
-              </Button>
+            <Link href="/" className="flex items-center gap-1.5 text-gray-700 hover:text-gray-900 transition-colors">
+              <Icon icon="solar:home-2-linear" className="size-5" />
+              <span className="text-sm font-normal">Home</span>
             </Link>
 
             {/* Account */}
             {user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" title="Account">
-                    <Icon icon="solar:user-circle-linear" className="size-6" />
-                  </Button>
+                  <button className="flex items-center gap-1.5 text-gray-700 hover:text-gray-900 transition-colors px-2 py-1 rounded-md hover:bg-gray-50">
+                    <Icon icon="solar:user-circle-linear" className="size-5" />
+                    <span className="text-sm font-normal">{user.name}</span>
+                  </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-56" align="end" forceMount>
                   <DropdownMenuLabel className="font-normal">
@@ -144,23 +145,23 @@ export function Header() {
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-              <Link href="/auth/login">
-                <Button variant="ghost" size="icon" title="Account">
-                  <Icon icon="solar:user-circle-linear" className="size-6" />
-                </Button>
+              <Link href="/auth/login" className="flex items-center gap-1.5 text-gray-700 hover:text-gray-900 transition-colors">
+                <Icon icon="solar:user-circle-linear" className="size-5" />
+                <span className="text-sm font-normal">Account</span>
               </Link>
             )}
 
+            {/* Notifications */}
+            {user && <NotificationsDropdown variant="user" />}
+
             {/* Cart */}
-            <Link href="/cart" className="relative">
-              <Button variant="ghost" size="icon" title="Cart">
-                <Icon icon="solar:cart-large-linear" className="size-6" />
-                {itemCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold rounded-full size-5 flex items-center justify-center">
-                    {itemCount > 9 ? '9+' : itemCount}
-                  </span>
-                )}
-              </Button>
+            <Link href="/cart" className="relative flex items-center gap-1.5 text-gray-700 hover:text-gray-900 transition-colors">
+              <Icon icon="solar:cart-large-linear" className="size-5" />
+              {itemCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-semibold rounded-full size-4 flex items-center justify-center min-w-[16px]">
+                  {itemCount > 9 ? '9+' : itemCount}
+                </span>
+              )}
             </Link>
 
             {/* Language Selector */}

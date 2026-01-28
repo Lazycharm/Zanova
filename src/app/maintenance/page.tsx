@@ -1,5 +1,4 @@
 import Image from 'next/image'
-import { Icon } from '@iconify/react/dist/iconify.js'
 
 export default function MaintenancePage() {
   return (
@@ -20,7 +19,7 @@ export default function MaintenancePage() {
         {/* Maintenance Icon */}
         <div className="flex justify-center">
           <div className="size-24 rounded-full bg-primary/10 flex items-center justify-center">
-            <Icon icon="solar:settings-bold" className="size-12 text-primary animate-spin" style={{ animationDuration: '3s' }} />
+            <div className="size-12 rounded-full border-4 border-primary/30 border-t-primary animate-spin" style={{ animationDuration: '1s' }} />
           </div>
         </div>
 
@@ -47,7 +46,6 @@ export default function MaintenancePage() {
               href="mailto:support@zalora.com"
               className="flex items-center justify-center gap-2 text-primary hover:underline"
             >
-              <Icon icon="solar:letter-bold" className="size-5" />
               <span>support@zalora.com</span>
             </a>
           </div>

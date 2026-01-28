@@ -1,8 +1,8 @@
 import { db } from '@/lib/db'
 import { CategoriesClient } from './categories-client'
 
-// Revalidate every 5 minutes for better performance
-export const revalidate = 300
+// Avoid prerender-time DB access on deploy/build environments.
+export const dynamic = 'force-dynamic'
 
 export const metadata = {
   title: 'Categories - ZALORA',

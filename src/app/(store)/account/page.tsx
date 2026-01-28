@@ -4,7 +4,7 @@ import { db } from '@/lib/db'
 import { AccountClient } from './account-client'
 
 async function getAccountData(userId: string) {
-  const [orders, favorites, user] = await Promise.all([
+  const [orders, favorites, user, userSellingSetting] = await Promise.all([
     db.order.count({ where: { userId } }),
     db.favorite.count({ where: { userId } }),
     db.user.findUnique({
@@ -25,7 +25,12 @@ async function getAccountData(userId: string) {
         },
       },
     }),
+    db.setting.findUnique({
+      where: { key: 'user_selling_enabled' },
+    }),
   ])
+
+  const userSellingEnabled = userSellingSetting?.value === 'true'
 
   return {
     orders,
@@ -37,7 +42,7 @@ async function getAccountData(userId: string) {
       avatar: user.avatar,
       balance: Number(user.balance),
       role: user.role,
-      canSell: user.canSell,
+      canSell: user.canSell && userSellingEnabled, // Only true if both are enabled
       shop: user.shop,
     } : null,
   }

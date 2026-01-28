@@ -25,8 +25,14 @@ export async function POST(req: NextRequest) {
   try {
     const auth = await getSession()
 
-    if (!auth || (auth.role !== 'ADMIN' && auth.role !== 'MANAGER')) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (!auth) {
+      console.error('[Hero Slides POST] No auth session found')
+      return NextResponse.json({ error: 'Unauthorized: No session found' }, { status: 401 })
+    }
+
+    if (auth.role !== 'ADMIN' && auth.role !== 'MANAGER') {
+      console.error(`[Hero Slides POST] Insufficient permissions. Role: ${auth.role}, User: ${auth.email}`)
+      return NextResponse.json({ error: 'Unauthorized: Insufficient permissions' }, { status: 401 })
     }
 
     const body = await req.json()

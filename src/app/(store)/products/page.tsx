@@ -1,4 +1,5 @@
 import { Suspense } from 'react'
+import type { Prisma } from '@prisma/client'
 import { db } from '@/lib/db'
 import { ProductsClient } from './products-client'
 
@@ -21,7 +22,7 @@ async function getProducts(searchParams: SearchParams) {
   const limit = 20
   const skip = (page - 1) * limit
 
-  const where: Record<string, unknown> = {
+  const where: Prisma.ProductWhereInput = {
     status: 'PUBLISHED',
   }
 
@@ -50,7 +51,7 @@ async function getProducts(searchParams: SearchParams) {
   }
 
   // Sort options
-  let orderBy: Record<string, unknown> = { createdAt: 'desc' }
+  let orderBy: Prisma.ProductOrderByWithRelationInput = { createdAt: 'desc' }
   if (searchParams.sort === 'price-asc') {
     orderBy = { price: 'asc' }
   } else if (searchParams.sort === 'price-desc') {

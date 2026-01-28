@@ -45,13 +45,11 @@ export function LanguageSelector({ variant = 'default' }: LanguageSelectorProps)
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          className={`relative ${variant === 'mobile' ? 'text-white hover:bg-white/20' : ''}`}
+        <button 
+          className={`relative ${variant === 'mobile' ? 'text-white hover:bg-white/20 p-2 rounded' : 'text-gray-700 hover:text-gray-900 transition-colors'}`}
         >
           <Icon icon="solar:global-linear" className="size-5" />
-        </Button>
+        </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-[180px] max-h-[400px] overflow-y-auto">
         {languages.map((lang) => (

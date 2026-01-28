@@ -57,6 +57,7 @@ interface ProductFormClientProps {
 export function ProductFormClient({ product, categories, shops }: ProductFormClientProps) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
+  const [uploadingImages, setUploadingImages] = useState(false)
   const [formData, setFormData] = useState({
     name: product?.name || '',
     slug: product?.slug || '',
@@ -69,7 +70,7 @@ export function ProductFormClient({ product, categories, shops }: ProductFormCli
     shopId: product?.shopId || '',
     status: product?.status || 'DRAFT',
     isFeatured: product?.isFeatured || false,
-    images: product?.images.map(img => img.url).join('\n') || '',
+    images: product?.images.map(img => img.url) || [] as string[],
   })
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -83,12 +84,6 @@ export function ProductFormClient({ product, categories, shops }: ProductFormCli
       
       const method = product ? 'PUT' : 'POST'
 
-      // Parse images
-      const imageUrls = formData.images
-        .split('\n')
-        .map(url => url.trim())
-        .filter(url => url.length > 0)
-
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
@@ -99,7 +94,7 @@ export function ProductFormClient({ product, categories, shops }: ProductFormCli
           stock: parseInt(formData.stock.toString()) || 0,
           categoryId: formData.categoryId || null,
           shopId: formData.shopId || null,
-          images: imageUrls,
+          images: formData.images,
         }),
       })
 
@@ -124,6 +119,73 @@ export function ProductFormClient({ product, categories, shops }: ProductFormCli
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-+|-+$/g, '')
     setFormData({ ...formData, slug })
+  }
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (!files || files.length === 0) return
+
+    setUploadingImages(true)
+
+    try {
+      const uploadPromises = Array.from(files).map(async (file) => {
+        // Validate file type
+        if (!file.type.startsWith('image/')) {
+          throw new Error(`${file.name} is not an image file`)
+        }
+
+        // Validate file size (max 5MB)
+        if (file.size > 5 * 1024 * 1024) {
+          throw new Error(`${file.name} is too large (max 5MB)`)
+        }
+
+        const formDataUpload = new FormData()
+        formDataUpload.append('file', file)
+        formDataUpload.append('folder', 'products')
+
+        const res = await fetch('/api/upload', {
+          method: 'POST',
+          body: formDataUpload,
+        })
+
+        const data = await res.json()
+
+        if (!res.ok) {
+          throw new Error(data.error || `Failed to upload ${file.name}`)
+        }
+
+        return data.url
+      })
+
+      const uploadedUrls = await Promise.all(uploadPromises)
+      setFormData((prev) => ({
+        ...prev,
+        images: [...prev.images, ...uploadedUrls],
+      }))
+      toast.success(`${uploadedUrls.length} image(s) uploaded!`)
+    } catch (error: any) {
+      toast.error(error.message)
+    } finally {
+      setUploadingImages(false)
+      // Reset input
+      e.target.value = ''
+    }
+  }
+
+  const removeImage = (index: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      images: prev.images.filter((_, i) => i !== index),
+    }))
+  }
+
+  const moveImage = (index: number, direction: 'up' | 'down') => {
+    const newIndex = direction === 'up' ? index - 1 : index + 1
+    if (newIndex < 0 || newIndex >= formData.images.length) return
+
+    const newImages = [...formData.images]
+    ;[newImages[index], newImages[newIndex]] = [newImages[newIndex], newImages[index]]
+    setFormData((prev) => ({ ...prev, images: newImages }))
   }
 
   return (
@@ -330,38 +392,81 @@ export function ProductFormClient({ product, categories, shops }: ProductFormCli
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <Label htmlFor="images">Image URLs (one per line)</Label>
-              <Textarea
-                id="images"
-                value={formData.images}
-                onChange={(e) => setFormData({ ...formData, images: e.target.value })}
-                placeholder="https://images.unsplash.com/photo-...&#10;https://..."
-                rows={6}
-              />
-              <p className="text-xs text-muted-foreground mt-1">
-                Enter one image URL per line. The first image will be the primary image.
-              </p>
+              <Label htmlFor="images">Upload Images</Label>
+              <div className="mt-2">
+                <Input
+                  id="images"
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handleImageUpload}
+                  disabled={uploadingImages}
+                  className="cursor-pointer"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Upload one or more images. The first image will be the primary image. Max 5MB per image.
+                </p>
+              </div>
             </div>
 
             {/* Image Preview */}
-            {formData.images && (
-              <div className="grid grid-cols-4 gap-4">
-                {formData.images.split('\n').filter(url => url.trim()).map((url, index) => (
-                  <div key={index} className="relative aspect-square rounded-lg overflow-hidden bg-muted">
-                    <Image
-                      src={url.trim()}
-                      alt={`Preview ${index + 1}`}
-                      fill
-                      className="object-cover"
-                      onError={(e) => {
-                        e.currentTarget.src = '/placeholder-product.jpg'
-                      }}
-                    />
-                    {index === 0 && (
-                      <Badge className="absolute top-2 left-2">Primary</Badge>
-                    )}
+            {formData.images.length > 0 && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                  {formData.images.map((url, index) => (
+                    <div key={index} className="relative group aspect-square rounded-lg overflow-hidden bg-muted border-2 border-border">
+                      <Image
+                        src={url}
+                        alt={`Product image ${index + 1}`}
+                        fill
+                        className="object-cover"
+                        onError={(e) => {
+                          e.currentTarget.src = '/placeholder-product.jpg'
+                        }}
+                      />
+                      {index === 0 && (
+                        <Badge className="absolute top-2 left-2">Primary</Badge>
+                      )}
+                      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="secondary"
+                          onClick={() => moveImage(index, 'up')}
+                          disabled={index === 0}
+                          className="h-8 w-8"
+                        >
+                          <Icon icon="solar:arrow-up-linear" className="size-4" />
+                        </Button>
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="destructive"
+                          onClick={() => removeImage(index)}
+                          className="h-8 w-8"
+                        >
+                          <Icon icon="solar:trash-bin-trash-bold" className="size-4" />
+                        </Button>
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="secondary"
+                          onClick={() => moveImage(index, 'down')}
+                          disabled={index === formData.images.length - 1}
+                          className="h-8 w-8"
+                        >
+                          <Icon icon="solar:arrow-down-linear" className="size-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {uploadingImages && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Icon icon="solar:refresh-bold" className="size-4 animate-spin" />
+                    Uploading images...
                   </div>
-                ))}
+                )}
               </div>
             )}
           </CardContent>

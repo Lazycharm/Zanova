@@ -45,6 +45,10 @@ export function HomepageClient({ heroSlides: initialSlides }: HomepageClientProp
   const [editingSlide, setEditingSlide] = useState<HeroSlide | null>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [uploadingDesktop, setUploadingDesktop] = useState(false)
+  const [uploadingMobile, setUploadingMobile] = useState(false)
+  const [desktopPreview, setDesktopPreview] = useState<string | null>(null)
+  const [mobilePreview, setMobilePreview] = useState<string | null>(null)
 
   const [formData, setFormData] = useState({
     title: '',
@@ -70,6 +74,8 @@ export function HomepageClient({ heroSlides: initialSlides }: HomepageClientProp
         isActive: slide.isActive,
         sortOrder: slide.sortOrder,
       })
+      setDesktopPreview(slide.image)
+      setMobilePreview(slide.mobileImage)
     } else {
       setEditingSlide(null)
       setFormData({
@@ -82,12 +88,104 @@ export function HomepageClient({ heroSlides: initialSlides }: HomepageClientProp
         isActive: true,
         sortOrder: heroSlides.length,
       })
+      setDesktopPreview(null)
+      setMobilePreview(null)
     }
     setIsDialogOpen(true)
   }
 
+  const handleDesktopImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please upload an image file')
+      return
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image size must be less than 5MB')
+      return
+    }
+
+    setUploadingDesktop(true)
+
+    try {
+      const formDataUpload = new FormData()
+      formDataUpload.append('file', file)
+      formDataUpload.append('folder', 'hero-slides')
+
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formDataUpload,
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to upload image')
+      }
+
+      setFormData((prev) => ({ ...prev, image: data.url }))
+      setDesktopPreview(data.url)
+      toast.success('Desktop image uploaded!')
+    } catch (error: any) {
+      toast.error(error.message)
+    } finally {
+      setUploadingDesktop(false)
+    }
+  }
+
+  const handleMobileImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please upload an image file')
+      return
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image size must be less than 5MB')
+      return
+    }
+
+    setUploadingMobile(true)
+
+    try {
+      const formDataUpload = new FormData()
+      formDataUpload.append('file', file)
+      formDataUpload.append('folder', 'hero-slides')
+
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formDataUpload,
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to upload image')
+      }
+
+      setFormData((prev) => ({ ...prev, mobileImage: data.url }))
+      setMobilePreview(data.url)
+      toast.success('Mobile image uploaded!')
+    } catch (error: any) {
+      toast.error(error.message)
+    } finally {
+      setUploadingMobile(false)
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    if (!formData.image) {
+      toast.error('Please upload a desktop image')
+      return
+    }
+
     setLoading(true)
 
     try {
@@ -100,6 +198,7 @@ export function HomepageClient({ heroSlides: initialSlides }: HomepageClientProp
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify(formData),
       })
 
@@ -112,7 +211,9 @@ export function HomepageClient({ heroSlides: initialSlides }: HomepageClientProp
       toast.success(editingSlide ? 'Slide updated!' : 'Slide created!')
       
       // Refresh slides
-      const refreshRes = await fetch('/api/admin/hero-slides')
+      const refreshRes = await fetch('/api/admin/hero-slides', {
+        credentials: 'include',
+      })
       const refreshData = await refreshRes.json()
       setHeroSlides(refreshData.slides)
       
@@ -132,6 +233,7 @@ export function HomepageClient({ heroSlides: initialSlides }: HomepageClientProp
     try {
       const res = await fetch(`/api/admin/hero-slides/${id}`, {
         method: 'DELETE',
+        credentials: 'include',
       })
 
       const data = await res.json()
@@ -156,6 +258,7 @@ export function HomepageClient({ heroSlides: initialSlides }: HomepageClientProp
       const res = await fetch(`/api/admin/hero-slides/${slide.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ isActive: !slide.isActive }),
       })
 
@@ -202,6 +305,7 @@ export function HomepageClient({ heroSlides: initialSlides }: HomepageClientProp
       await fetch('/api/admin/hero-slides/reorder', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
           slides: updatedSlides.map((s) => ({ id: s.id, sortOrder: s.sortOrder })),
         }),
@@ -253,24 +357,70 @@ export function HomepageClient({ heroSlides: initialSlides }: HomepageClientProp
               </div>
 
               <div>
-                <Label htmlFor="image">Desktop Image URL</Label>
-                <Input
-                  id="image"
-                  value={formData.image}
-                  onChange={(e) => setFormData({ ...formData, image: e.target.value })}
-                  placeholder="https://..."
-                  required
-                />
+                <Label htmlFor="image">Desktop Image {!editingSlide && <span className="text-red-500">*</span>}</Label>
+                <div className="space-y-2">
+                  <Input
+                    id="image"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleDesktopImageUpload}
+                    disabled={uploadingDesktop}
+                  />
+                  {uploadingDesktop && (
+                    <p className="text-sm text-muted-foreground">Uploading...</p>
+                  )}
+                  {(desktopPreview || formData.image) && (
+                    <div className="relative w-full h-48 rounded-lg overflow-hidden border border-border">
+                      <Image
+                        src={desktopPreview || formData.image}
+                        alt="Desktop preview"
+                        fill
+                        className="object-cover"
+                      />
+                    </div>
+                  )}
+                  {editingSlide && formData.image && (
+                    <p className="text-xs text-muted-foreground">
+                      Current image. Upload a new file to replace it.
+                    </p>
+                  )}
+                </div>
               </div>
 
               <div>
-                <Label htmlFor="mobileImage">Mobile Image URL (optional)</Label>
-                <Input
-                  id="mobileImage"
-                  value={formData.mobileImage}
-                  onChange={(e) => setFormData({ ...formData, mobileImage: e.target.value })}
-                  placeholder="https://..."
-                />
+                <Label htmlFor="mobileImage">Mobile Image (optional)</Label>
+                <div className="space-y-2">
+                  <Input
+                    id="mobileImage"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleMobileImageUpload}
+                    disabled={uploadingMobile}
+                  />
+                  {uploadingMobile && (
+                    <p className="text-sm text-muted-foreground">Uploading...</p>
+                  )}
+                  {mobilePreview && (
+                    <div className="relative w-full h-48 rounded-lg overflow-hidden border border-border">
+                      <Image
+                        src={mobilePreview}
+                        alt="Mobile preview"
+                        fill
+                        className="object-cover"
+                      />
+                    </div>
+                  )}
+                  {formData.mobileImage && !mobilePreview && (
+                    <div className="relative w-full h-48 rounded-lg overflow-hidden border border-border">
+                      <Image
+                        src={formData.mobileImage}
+                        alt="Mobile image"
+                        fill
+                        className="object-cover"
+                      />
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">

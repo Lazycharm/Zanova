@@ -1,8 +1,8 @@
 import { db } from '@/lib/db'
 import { HomePageClient } from './home-client'
 
-// Revalidate every 5 minutes for better performance
-export const revalidate = 300
+// Avoid prerender-time DB access on deploy/build environments.
+export const dynamic = 'force-dynamic'
 
 async function getHomeData() {
   const [featuredProducts, newArrivals, categories, heroSlides] = await Promise.all([

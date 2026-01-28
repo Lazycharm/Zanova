@@ -15,6 +15,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { getInitials } from '@/lib/utils'
 import toast from 'react-hot-toast'
+import { NotificationsDropdown } from '@/components/notifications-dropdown'
 
 interface User {
   id: string
@@ -85,10 +86,7 @@ export function AdminHeader({ user }: { user: User }) {
         {/* Actions */}
         <div className="flex items-center gap-2">
           {/* Notifications */}
-          <Button variant="ghost" size="icon" className="relative">
-            <Icon icon="solar:bell-bing-linear" className="size-5" />
-            <span className="absolute top-1 right-1 size-2 bg-destructive rounded-full" />
-          </Button>
+          <NotificationsDropdown variant="admin" />
 
           {/* View Store */}
           <Button variant="ghost" size="icon" asChild className="hidden lg:flex">

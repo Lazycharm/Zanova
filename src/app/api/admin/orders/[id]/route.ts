@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
 import { db } from '@/lib/db'
+import { createNotification } from '@/lib/notifications'
 
 export async function GET(
   request: NextRequest,
@@ -116,6 +117,21 @@ export async function PATCH(
       updateData.deliveredAt = new Date(deliveredAt)
     }
 
+    // Get order before update to check for status changes
+    const oldOrder = await db.order.findUnique({
+      where: { id: params.id },
+      select: {
+        userId: true,
+        status: true,
+        paymentStatus: true,
+        orderNumber: true,
+      },
+    })
+
+    if (!oldOrder) {
+      return NextResponse.json({ error: 'Order not found' }, { status: 404 })
+    }
+
     const order = await db.order.update({
       where: { id: params.id },
       data: updateData,
@@ -139,6 +155,64 @@ export async function PATCH(
         },
       },
     })
+
+    // Create notifications for status changes
+    try {
+      if (status && status !== oldOrder.status) {
+        let notificationTitle = ''
+        let notificationMessage = ''
+        let notificationType: 'order' | 'payment' | 'promo' | 'system' | 'support' = 'order'
+
+        switch (status) {
+          case 'SHIPPED':
+            notificationTitle = 'Order Shipped'
+            notificationMessage = `Your order ${order.orderNumber} has been shipped${order.trackingNumber ? ` with tracking number ${order.trackingNumber}` : ''}`
+            break
+          case 'DELIVERED':
+            notificationTitle = 'Order Delivered'
+            notificationMessage = `Your order ${order.orderNumber} has been delivered`
+            break
+          case 'CANCELLED':
+            notificationTitle = 'Order Cancelled'
+            notificationMessage = `Your order ${order.orderNumber} has been cancelled`
+            break
+          case 'REFUNDED':
+            notificationTitle = 'Order Refunded'
+            notificationMessage = `Your order ${order.orderNumber} has been refunded`
+            break
+          case 'PAID':
+            notificationTitle = 'Payment Received'
+            notificationMessage = `Payment for order ${order.orderNumber} has been received`
+            notificationType = 'payment'
+            break
+        }
+
+        if (notificationTitle) {
+          await createNotification({
+            userId: order.user.id,
+            title: notificationTitle,
+            message: notificationMessage,
+            type: notificationType,
+            link: `/account/orders/${order.id}`,
+          })
+        }
+      }
+
+      if (paymentStatus && paymentStatus !== oldOrder.paymentStatus) {
+        if (paymentStatus === 'COMPLETED') {
+          await createNotification({
+            userId: order.user.id,
+            title: 'Payment Confirmed',
+            message: `Payment for order ${order.orderNumber} has been confirmed`,
+            type: 'payment',
+            link: `/account/orders/${order.id}`,
+          })
+        }
+      }
+    } catch (error) {
+      console.error('Error creating notification:', error)
+      // Don't fail the request if notification creation fails
+    }
 
     return NextResponse.json({
       message: 'Order updated successfully',

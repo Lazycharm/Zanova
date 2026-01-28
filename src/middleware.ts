@@ -52,6 +52,14 @@ export async function middleware(request: NextRequest) {
     // Verify token
     const { payload } = await jwtVerify(token, JWT_SECRET)
     
+    // Check if token is expired
+    if (payload.exp && payload.exp < Date.now() / 1000) {
+      // Token expired, redirect to login
+      const response = NextResponse.redirect(new URL('/auth/login', request.url))
+      response.cookies.delete('auth-token')
+      return response
+    }
+    
     // For admin routes, check role
     if (isAdminRoute) {
       if (payload.role !== 'ADMIN' && payload.role !== 'MANAGER') {
@@ -60,8 +68,21 @@ export async function middleware(request: NextRequest) {
     }
 
     return NextResponse.next()
-  } catch {
-    // Invalid token, redirect to login
+  } catch (error) {
+    // Check if it's a JWT expiration error
+    const isExpired = error instanceof Error && (
+      error.message.includes('expired') || 
+      error.message.includes('ExpirationTime')
+    )
+    
+    if (isExpired) {
+      // Token expired, redirect to login and delete cookie
+      const response = NextResponse.redirect(new URL('/auth/login', request.url))
+      response.cookies.delete('auth-token')
+      return response
+    }
+    
+    // For other errors (malformed token, etc.), also redirect but delete cookie
     const response = NextResponse.redirect(new URL('/auth/login', request.url))
     response.cookies.delete('auth-token')
     return response

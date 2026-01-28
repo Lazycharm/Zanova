@@ -34,7 +34,7 @@ async function getDashboardStats() {
       totalUsers,
       totalOrders,
       totalProducts,
-      totalRevenue: totalRevenue._sum.total || 0,
+      totalRevenue: Number(totalRevenue._sum.total ?? 0),
       pendingOrders,
       activeShops,
       openTickets,

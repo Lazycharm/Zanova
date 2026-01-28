@@ -1,25 +1,100 @@
-'use client'
+import { getCurrentUser } from '@/lib/auth'
+import { redirect } from 'next/navigation'
+import { db } from '@/lib/db'
+import { ShopsClient } from './shops-client'
 
-import { Icon } from '@iconify/react'
-import { Card, CardContent } from '@/components/ui/card'
+interface SearchParams {
+  page?: string
+  search?: string
+  status?: string
+}
 
-export default function ShopsPage() {
-  return (
-    <div className="space-y-6 pb-20 lg:pb-0">
-      <div>
-        <h1 className="text-2xl font-bold font-heading">Shops</h1>
-        <p className="text-muted-foreground">Manage multi-vendor shops</p>
-      </div>
+async function getShops(searchParams: SearchParams) {
+  const page = parseInt(searchParams.page || '1')
+  const limit = 20
+  const skip = (page - 1) * limit
 
-      <Card>
-        <CardContent className="flex flex-col items-center justify-center py-12">
-          <Icon icon="solar:shop-linear" className="size-16 text-muted-foreground/30 mb-4" />
-          <h3 className="text-lg font-medium mb-2">Shop Management</h3>
-          <p className="text-muted-foreground text-center max-w-md">
-            Approve, manage, and monitor vendor shops. Control commissions and shop settings. This feature is coming soon.
-          </p>
-        </CardContent>
-      </Card>
-    </div>
-  )
+  const where: any = {}
+
+  if (searchParams.search) {
+    where.OR = [
+      { name: { contains: searchParams.search, mode: 'insensitive' } },
+      { slug: { contains: searchParams.search, mode: 'insensitive' } },
+    ]
+  }
+
+  if (searchParams.status && searchParams.status !== 'all') {
+    where.status = searchParams.status
+  }
+
+  const [shops, total] = await Promise.all([
+    db.shop.findMany({
+      where,
+      skip,
+      take: limit,
+      orderBy: { createdAt: 'desc' },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+        _count: {
+          select: {
+            products: true,
+            orders: true,
+          },
+        },
+      },
+    }),
+    db.shop.count({ where }),
+  ])
+
+  return {
+    shops: shops.map((shop) => ({
+      id: shop.id,
+      name: shop.name,
+      slug: shop.slug,
+      status: shop.status,
+      level: shop.level,
+      balance: Number(shop.balance),
+      totalSales: shop.totalSales,
+      rating: Number(shop.rating),
+      commissionRate: Number(shop.commissionRate),
+      logo: shop.logo,
+      user: {
+        id: shop.user.id,
+        name: shop.user.name,
+        email: shop.user.email,
+      },
+      productCount: shop._count.products,
+      orderCount: shop._count.orders,
+      createdAt: shop.createdAt.toISOString(),
+    })),
+    total,
+    pages: Math.ceil(total / limit),
+    page,
+  }
+}
+
+export default async function ShopsPage({
+  searchParams,
+}: {
+  searchParams: SearchParams
+}) {
+  const currentUser = await getCurrentUser()
+
+  if (!currentUser) {
+    redirect('/auth/login')
+  }
+
+  if (currentUser.role !== 'ADMIN' && currentUser.role !== 'MANAGER') {
+    redirect('/')
+  }
+
+  const data = await getShops(searchParams)
+
+  return <ShopsClient {...data} searchParams={searchParams} />
 }
