@@ -3,7 +3,7 @@ import { db } from '@/lib/db'
 import { ProductsClient } from './products-client'
 
 export const metadata = {
-  title: 'All Products - ZANOVA',
+  title: 'All Products - ZALORA',
   description: 'Browse our complete product catalog',
 }
 

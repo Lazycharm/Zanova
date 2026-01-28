@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { db } from '@/lib/db'
 import { Header } from '@/components/layout/header'
+import { StoreSidebar } from '@/components/layout/store-sidebar'
 import { BottomNav } from '@/components/layout/bottom-nav'
 import { ChatWidget } from '@/components/layout/chat-widget'
 import { SearchModal } from '@/components/search-modal'
@@ -32,6 +33,29 @@ async function checkMaintenance() {
   }
 }
 
+async function getCategories() {
+  try {
+    const categories = await db.category.findMany({
+      where: {
+        isActive: true,
+        parentId: null,
+      },
+      orderBy: { sortOrder: 'asc' },
+      take: 15,
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        icon: true,
+        image: true,
+      },
+    })
+    return categories
+  } catch {
+    return []
+  }
+}
+
 export default async function StoreLayout({
   children,
 }: {
@@ -44,12 +68,18 @@ export default async function StoreLayout({
     redirect('/maintenance')
   }
 
+  // Fetch categories for sidebar
+  const categories = await getCategories()
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <main className="pb-20 lg:pb-0">
-        {children}
-      </main>
+      <div className="flex">
+        <StoreSidebar categories={categories} />
+        <main className="flex-1 lg:ml-64 pb-20 lg:pb-0">
+          {children}
+        </main>
+      </div>
       <BottomNav />
       <ChatWidget />
       <SearchModal />

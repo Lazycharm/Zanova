@@ -2,7 +2,7 @@ import { Suspense } from 'react'
 import { CheckoutClient } from './checkout-client'
 
 export const metadata = {
-  title: 'Checkout - ZANOVA',
+  title: 'Checkout - ZALORA',
   description: 'Complete your order',
 }
 

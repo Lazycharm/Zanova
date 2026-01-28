@@ -3,7 +3,7 @@ import type { NextRequest } from 'next/server'
 import { jwtVerify } from 'jose'
 
 const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || 'zanova-secret-key'
+  process.env.JWT_SECRET || 'zalora-secret-key'
 )
 
 // Protected routes that require authentication

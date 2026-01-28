@@ -1,4 +1,4 @@
-# ZANOVA E-Commerce Platform - Build Summary
+# ZALORA E-Commerce Platform - Build Summary
 
 ## ✅ **COMPLETED PAGES & FEATURES**
 
@@ -106,7 +106,7 @@
 ## **HOW TO USE NEW FEATURES:**
 
 ### **Change Site Name & Logo:**
-1. Login as admin (`admin@zanova.com` / `admin123`)
+1. Login as admin (`admin@zalora.com` / `admin123`)
 2. Go to `/admin/settings`
 3. In **General** tab:
    - Update "Site Name"
@@ -203,7 +203,7 @@ These can be built in future iterations:
 6. Register/Login
 
 ### **Admin Experience:**
-1. Login: `admin@zanova.com` / `admin123`
+1. Login: `admin@zalora.com` / `admin123`
 2. `/admin/settings` - Change site name & logo
 3. `/admin/homepage` - Manage slider
 4. `/admin/categories` - Edit categories

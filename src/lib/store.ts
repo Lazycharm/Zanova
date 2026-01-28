@@ -82,7 +82,7 @@ export const useCartStore = create<CartStore>()(
       },
     }),
     {
-      name: 'zanova-cart',
+      name: 'zalora-cart',
     }
   )
 )

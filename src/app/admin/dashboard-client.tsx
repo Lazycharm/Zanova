@@ -90,7 +90,7 @@ export function AdminDashboardClient({ stats }: AdminDashboardClientProps) {
     <div className="space-y-6 pb-20 lg:pb-0">
       <div>
         <h1 className="text-2xl font-bold font-heading">Dashboard</h1>
-        <p className="text-muted-foreground">Welcome to ZANOVA Admin Panel</p>
+        <p className="text-muted-foreground">Welcome to ZALORA Admin Panel</p>
       </div>
 
       {/* Stats Grid */}

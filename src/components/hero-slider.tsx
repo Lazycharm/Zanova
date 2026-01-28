@@ -94,7 +94,7 @@ export function HeroSlider({ slides, autoPlayInterval = 5000 }: HeroSliderProps)
           <div className="absolute bottom-4 right-4 lg:bottom-8 lg:right-8 opacity-60 z-10">
             <div className="text-white text-right">
               <div className="text-xs lg:text-sm mb-1">From</div>
-              <div className="text-lg lg:text-2xl font-bold font-heading">ZANOVA</div>
+              <div className="text-lg lg:text-2xl font-bold font-heading">ZALORA</div>
             </div>
           </div>
 

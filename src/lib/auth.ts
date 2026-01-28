@@ -5,7 +5,7 @@ import bcrypt from 'bcryptjs'
 import { UserRole, UserStatus } from '@prisma/client'
 
 const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || 'zanova-secret-key'
+  process.env.JWT_SECRET || 'zalora-secret-key'
 )
 
 export interface JWTPayload {

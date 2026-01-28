@@ -41,6 +41,7 @@ export async function GET(request: NextRequest) {
             email: true,
           },
         },
+        address: true,
         items: {
           include: {
             product: {

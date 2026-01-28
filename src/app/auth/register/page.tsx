@@ -87,7 +87,7 @@ export default function RegisterPage() {
             <div className="mx-auto mb-4 flex justify-center">
               <Image
                 src="/images/logo.png"
-                alt="ZANOVA"
+                alt="ZALORA"
                 width={180}
                 height={60}
                 className="object-contain"
@@ -96,7 +96,7 @@ export default function RegisterPage() {
             </div>
             <CardTitle className="text-2xl font-bold">Create Account</CardTitle>
             <CardDescription>
-              Join ZANOVA and start shopping
+              Join ZALORA and start shopping
             </CardDescription>
           </CardHeader>
           <CardContent>

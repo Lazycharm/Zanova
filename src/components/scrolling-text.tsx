@@ -8,9 +8,9 @@ interface ScrollingTextProps {
 
 export function ScrollingText({ className = '' }: ScrollingTextProps) {
   const messages = [
-    "Start your first business now in your Zanova Fashion store!",
-    "One stop management Store, inventory, orders, promotions, creator partnerships and customer service are all completed in the Zanova Fashion store.",
-    "ZanovaFashion can strengthen its global market position through technological empowerment and ecosystem expansion, while also driving shopping trends. Start your first business now in the ZanovaFashion store!"
+    "Start your first business now in your Zalora Fashion store!",
+    "One stop management Store, inventory, orders, promotions, creator partnerships and customer service are all completed in the Zalora Fashion store.",
+    "ZaloraFashion can strengthen its global market position through technological empowerment and ecosystem expansion, while also driving shopping trends. Start your first business now in the ZaloraFashion store!"
   ]
 
   return (
@@ -20,7 +20,7 @@ export function ScrollingText({ className = '' }: ScrollingTextProps) {
         <div className="bg-white px-2.5 py-1 inline-flex items-center rounded shadow-sm">
           <Image 
             src="/images/logo.png" 
-            alt="ZANOVA" 
+            alt="ZALORA" 
             width={70} 
             height={20} 
             className="object-contain"

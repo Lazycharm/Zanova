@@ -19,7 +19,7 @@ export async function POST(
       where: { id: params.id },
       data: {
         paymentStatus: 'COMPLETED',
-        status: 'PROCESSING',
+        status: 'PAID',
         paidAt: new Date(),
       },
     })

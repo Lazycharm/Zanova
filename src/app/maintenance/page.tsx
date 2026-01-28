@@ -9,7 +9,7 @@ export default function MaintenancePage() {
         <div className="flex justify-center">
           <Image
             src="/images/logo.png"
-            alt="ZANOVA"
+            alt="ZALORA"
             width={200}
             height={70}
             className="object-contain"
@@ -44,11 +44,11 @@ export default function MaintenancePage() {
           </p>
           <div className="flex flex-col gap-2">
             <a
-              href="mailto:support@zanova.com"
+              href="mailto:support@zalora.com"
               className="flex items-center justify-center gap-2 text-primary hover:underline"
             >
               <Icon icon="solar:letter-bold" className="size-5" />
-              <span>support@zanova.com</span>
+              <span>support@zalora.com</span>
             </a>
           </div>
         </div>

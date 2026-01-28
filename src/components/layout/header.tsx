@@ -25,86 +25,69 @@ export function Header() {
   const setSearchOpen = useUIStore((state) => state.setSearchOpen)
 
   return (
-    <header className="sticky top-0 z-40 w-full bg-card border-b border-border hidden lg:block">
-      <div className="container mx-auto px-6">
-        <div className="flex h-16 items-center gap-8">
-          {/* Logo */}
+    <header className="sticky top-0 z-40 w-full bg-white border-b border-border hidden lg:block">
+      <div className="container mx-auto px-4">
+        <div className="flex h-16 items-center justify-between gap-4">
+          {/* Logo - Left */}
           <Link href="/" className="flex items-center flex-shrink-0">
             <Image
               src="/images/logo.png"
-              alt="ZANOVA"
-              width={120}
+              alt="ZALORA Fashion"
+              width={140}
               height={40}
               className="object-contain"
               priority
             />
           </Link>
 
-          {/* Navigation */}
-          <nav className="hidden lg:flex items-center gap-8 flex-shrink-0">
-            <Link
-              href="/"
-              className="text-sm font-medium text-foreground hover:text-primary transition-colors whitespace-nowrap"
-            >
-              {t('home')}
-            </Link>
-            <Link
-              href="/categories"
-              className="text-sm font-medium text-foreground hover:text-primary transition-colors whitespace-nowrap"
-            >
-              {t('categories')}
-            </Link>
-            <Link
-              href="/products"
-              className="text-sm font-medium text-foreground hover:text-primary transition-colors whitespace-nowrap"
-            >
-              {t('allProducts')}
-            </Link>
-            <Link
-              href="/deals"
-              className="text-sm font-medium text-destructive hover:text-destructive/80 transition-colors whitespace-nowrap"
-            >
-              {t('deals')}
-            </Link>
-          </nav>
-
-          {/* Search */}
-          <div className="hidden lg:flex flex-1 max-w-2xl">
-            <button
+          {/* Search Bar - Center */}
+          <div className="flex-1 flex items-center gap-2 max-w-2xl mx-8">
+            <div className="flex-1 relative">
+              <input
+                type="text"
+                placeholder="100% selected good products"
+                onClick={() => setSearchOpen(true)}
+                className="w-full px-4 py-2 pr-12 bg-gray-50 border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                readOnly
+              />
+              <Icon 
+                icon="solar:magnifer-linear" 
+                className="absolute right-3 top-1/2 -translate-y-1/2 size-5 text-muted-foreground pointer-events-none" 
+              />
+            </div>
+            <Button
               onClick={() => setSearchOpen(true)}
-              className="w-full flex items-center gap-3 px-4 py-2 bg-input rounded-lg text-sm text-muted-foreground hover:bg-muted transition-colors"
+              variant="outline"
+              size="sm"
+              className="whitespace-nowrap px-3"
             >
-              <Icon icon="solar:magnifer-linear" className="size-5" />
-              <span>{t('searchProducts')}</span>
-            </button>
+              Search Products
+            </Button>
+            <Button
+              onClick={() => setSearchOpen(true)}
+              variant="outline"
+              size="sm"
+              className="whitespace-nowrap px-3"
+            >
+              Search Store
+            </Button>
           </div>
 
-          {/* Actions */}
-          <div className="flex items-center gap-3 flex-shrink-0">
-            {/* Language Selector */}
-            <LanguageSelector />
-
-            {/* Cart */}
-            <Link href="/cart" className="relative">
-              <Button variant="ghost" size="icon">
-                <Icon icon="solar:cart-large-linear" className="size-6" />
-                {itemCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-destructive text-white text-[10px] font-bold rounded-full size-5 flex items-center justify-center">
-                    {itemCount > 9 ? '9+' : itemCount}
-                  </span>
-                )}
+          {/* Actions - Right */}
+          <div className="flex items-center gap-1 flex-shrink-0">
+            {/* Home */}
+            <Link href="/">
+              <Button variant="ghost" size="icon" title="Home">
+                <Icon icon="solar:home-2-linear" className="size-6" />
               </Button>
             </Link>
 
-            {/* User Menu */}
+            {/* Account */}
             {user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-                    <Avatar className="h-10 w-10">
-                      <AvatarImage src={user.avatar || undefined} alt={user.name} />
-                      <AvatarFallback>{getInitials(user.name)}</AvatarFallback>
-                    </Avatar>
+                  <Button variant="ghost" size="icon" title="Account">
+                    <Icon icon="solar:user-circle-linear" className="size-6" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-56" align="end" forceMount>
@@ -161,15 +144,28 @@ export function Header() {
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-              <div className="flex items-center gap-2">
-                <Button variant="ghost" asChild>
-                  <Link href="/auth/login">{t('login')}</Link>
+              <Link href="/auth/login">
+                <Button variant="ghost" size="icon" title="Account">
+                  <Icon icon="solar:user-circle-linear" className="size-6" />
                 </Button>
-                <Button asChild>
-                  <Link href="/auth/register">Sign up</Link>
-                </Button>
-              </div>
+              </Link>
             )}
+
+            {/* Cart */}
+            <Link href="/cart" className="relative">
+              <Button variant="ghost" size="icon" title="Cart">
+                <Icon icon="solar:cart-large-linear" className="size-6" />
+                {itemCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold rounded-full size-5 flex items-center justify-center">
+                    {itemCount > 9 ? '9+' : itemCount}
+                  </span>
+                )}
+              </Button>
+            </Link>
+
+            {/* Language Selector */}
+            <LanguageSelector />
+
           </div>
         </div>
       </div>

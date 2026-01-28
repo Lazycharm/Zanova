@@ -21,8 +21,8 @@ const jetbrains = JetBrains_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'ZANOVA - Premium Fashion & Lifestyle Store',
-  description: 'Discover the latest trends in fashion, accessories, and lifestyle products at ZANOVA. Shop with crypto payments.',
+  title: 'ZALORA - Premium Fashion & Lifestyle Store',
+  description: 'Discover the latest trends in fashion, accessories, and lifestyle products at ZALORA. Shop with crypto payments.',
   keywords: 'fashion, ecommerce, crypto payments, clothing, accessories, lifestyle',
   icons: {
     icon: [
@@ -33,8 +33,8 @@ export const metadata: Metadata = {
     apple: '/apple-touch-icon.png',
   },
   openGraph: {
-    title: 'ZANOVA - Premium Fashion & Lifestyle Store',
-    description: 'Discover the latest trends in fashion, accessories, and lifestyle products at ZANOVA.',
+    title: 'ZALORA - Premium Fashion & Lifestyle Store',
+    description: 'Discover the latest trends in fashion, accessories, and lifestyle products at ZALORA.',
     type: 'website',
   },
 }

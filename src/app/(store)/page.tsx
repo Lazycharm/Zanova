@@ -137,7 +137,7 @@ export default async function HomePage() {
   const defaultHeroSlides = [
     {
       id: '1',
-      title: 'Welcome to ZANOVA',
+      title: 'Welcome to ZALORA',
       subtitle: 'Fall Sale',
       image: 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=1200&q=80',
       mobileImage: 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=800&q=80',

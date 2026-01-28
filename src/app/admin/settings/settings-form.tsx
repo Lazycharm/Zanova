@@ -69,7 +69,7 @@ export function SettingsForm({ initialSettings }: SettingsFormProps) {
                 id="site_name"
                 value={settings.site_name || ''}
                 onChange={(e) => updateSetting('site_name', e.target.value)}
-                placeholder="ZANOVA"
+                placeholder="ZALORA"
               />
               <p className="text-xs text-muted-foreground">
                 This will appear in the browser tab and throughout the site

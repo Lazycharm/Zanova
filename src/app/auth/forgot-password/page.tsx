@@ -48,7 +48,7 @@ export default function ForgotPasswordPage() {
             <div className="mx-auto mb-4">
               <Image
                 src="/images/logo.png"
-                alt="ZANOVA"
+                alt="ZALORA"
                 width={180}
                 height={60}
                 className="rounded-xl object-contain mx-auto"

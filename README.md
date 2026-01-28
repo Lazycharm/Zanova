@@ -1,8 +1,8 @@
-# ZANOVA - Crypto-First E-commerce Platform
+# ZALORA - Crypto-First E-commerce Platform
 
 A production-ready, admin-controlled ecommerce platform built with Next.js 14, PostgreSQL, and Prisma.
 
-![ZANOVA Logo](/public/images/logo.png)
+![ZALORA Logo](/public/images/logo.png)
 
 ## Features
 
@@ -76,7 +76,7 @@ A production-ready, admin-controlled ecommerce platform built with Next.js 14, P
 
 1. **Clone and install dependencies**:
 ```bash
-cd Zanova
+cd Zalora
 npm install
 ```
 
@@ -86,9 +86,9 @@ npm install
 cp .env.example .env
 
 # Edit .env with your database credentials
-DATABASE_URL="postgresql://username:password@localhost:5432/zanova?schema=public"
+DATABASE_URL="postgresql://username:password@localhost:5432/zalora?schema=public"
 JWT_SECRET="your-super-secret-jwt-key-change-this-in-production"
-ADMIN_EMAIL="admin@zanova.com"
+ADMIN_EMAIL="admin@zalora.com"
 ADMIN_PASSWORD="admin123"
 ```
 
@@ -117,14 +117,14 @@ npm run dev
 
 | Role | Email | Password |
 |------|-------|----------|
-| Admin | admin@zanova.com | admin123 |
-| User | user@zanova.com | user123 |
-| Seller | seller@zanova.com | seller123 |
+| Admin | admin@zalora.com | admin123 |
+| User | user@zalora.com | user123 |
+| Seller | seller@zalora.com | seller123 |
 
 ## Project Structure
 
 ```
-Zanova/
+Zalora/
 ├── prisma/
 │   ├── schema.prisma      # Database schema
 │   └── seed.ts            # Seed data
@@ -198,8 +198,8 @@ The database includes the following main models:
 ### Docker
 
 ```bash
-docker build -t zanova .
-docker run -p 3000:3000 zanova
+docker build -t zalora .
+docker run -p 3000:3000 zalora
 ```
 
 ## Contributing
@@ -215,4 +215,4 @@ MIT License - see LICENSE file for details.
 
 ## Support
 
-For support, create an issue or contact admin@zanova.com
+For support, create an issue or contact admin@zalora.com

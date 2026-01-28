@@ -76,7 +76,7 @@ export default function LoginPage() {
             <div className="mx-auto mb-4 flex justify-center">
               <Image
                 src="/images/logo.png"
-                alt="ZANOVA"
+                alt="ZALORA"
                 width={180}
                 height={60}
                 className="object-contain"
@@ -85,7 +85,7 @@ export default function LoginPage() {
             </div>
             <CardTitle className="text-2xl font-bold">Welcome Back</CardTitle>
             <CardDescription>
-              Sign in to your ZANOVA account
+              Sign in to your ZALORA account
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -136,8 +136,8 @@ export default function LoginPage() {
             <div className="mt-6 p-4 bg-muted rounded-lg">
               <p className="text-xs text-muted-foreground text-center mb-2">Demo Credentials:</p>
               <div className="text-xs space-y-1">
-                <p><strong>Admin:</strong> admin@zanova.com / admin123</p>
-                <p><strong>User:</strong> user@zanova.com / user123</p>
+                <p><strong>Admin:</strong> admin@zalora.com / admin123</p>
+                <p><strong>User:</strong> user@zalora.com / user123</p>
               </div>
             </div>
           </CardContent>

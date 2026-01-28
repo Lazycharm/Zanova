@@ -26,7 +26,7 @@ export const translations = {
     contactUs: 'Contact Us',
     termsOfService: 'Terms of Service',
     privacyPolicy: 'Privacy Policy',
-    copyright: '© 2023-2026 ZanovaFashion. All rights reserved.',
+    copyright: '© 2023-2026 ZaloraFashion. All rights reserved.',
     
     // Categories
     menClothing: 'Men\'s Clothing',
@@ -125,7 +125,7 @@ export const translations = {
     contactUs: '联系我们',
     termsOfService: '服务条款',
     privacyPolicy: '隐私政策',
-    copyright: '© 2023-2026 ZanovaFashion。版权所有。',
+    copyright: '© 2023-2026 ZaloraFashion。版权所有。',
     
     // Categories
     menClothing: '男装',
@@ -224,7 +224,7 @@ export const translations = {
     contactUs: '聯絡我們',
     termsOfService: '服務條款',
     privacyPolicy: '隱私政策',
-    copyright: '© 2023-2026 ZanovaFashion。版權所有。',
+    copyright: '© 2023-2026 ZaloraFashion。版權所有。',
   },
   de: {
     // Header
@@ -253,7 +253,7 @@ export const translations = {
     contactUs: 'Kontakt',
     termsOfService: 'Nutzungsbedingungen',
     privacyPolicy: 'Datenschutz',
-    copyright: '© 2023-2026 ZanovaFashion. Alle Rechte vorbehalten.',
+    copyright: '© 2023-2026 ZaloraFashion. Alle Rechte vorbehalten.',
   },
   fr: {
     // Header
@@ -282,7 +282,7 @@ export const translations = {
     contactUs: 'Contactez-nous',
     termsOfService: 'Conditions d\'utilisation',
     privacyPolicy: 'Politique de confidentialité',
-    copyright: '© 2023-2026 ZanovaFashion. Tous droits réservés.',
+    copyright: '© 2023-2026 ZaloraFashion. Tous droits réservés.',
   },
   ja: {
     // Header
@@ -311,7 +311,7 @@ export const translations = {
     contactUs: 'お問い合わせ',
     termsOfService: '利用規約',
     privacyPolicy: 'プライバシーポリシー',
-    copyright: '© 2023-2026 ZanovaFashion。全著作権所有。',
+    copyright: '© 2023-2026 ZaloraFashion。全著作権所有。',
     
     // Categories
     menClothing: 'メンズ服',
@@ -405,7 +405,7 @@ export const translations = {
     contactUs: 'Contáctenos',
     termsOfService: 'Términos de servicio',
     privacyPolicy: 'Política de privacidad',
-    copyright: '© 2023-2026 ZanovaFashion. Todos los derechos reservados.',
+    copyright: '© 2023-2026 ZaloraFashion. Todos los derechos reservados.',
     
     // Categories
     menClothing: 'Ropa de Hombre',
@@ -499,7 +499,7 @@ export const translations = {
     contactUs: 'Liên hệ',
     termsOfService: 'Điều khoản dịch vụ',
     privacyPolicy: 'Chính sách bảo mật',
-    copyright: '© 2023-2026 ZanovaFashion. Bản quyền đã được bảo hộ.',
+    copyright: '© 2023-2026 ZaloraFashion. Bản quyền đã được bảo hộ.',
   },
   th: {
     // Header
@@ -528,7 +528,7 @@ export const translations = {
     contactUs: 'ติดต่อเรา',
     termsOfService: 'เงื่อนไขการให้บริการ',
     privacyPolicy: 'นโยบายความเป็นส่วนตัว',
-    copyright: '© 2023-2026 ZanovaFashion สงวนลิขสิทธิ์',
+    copyright: '© 2023-2026 ZaloraFashion สงวนลิขสิทธิ์',
   },
   ko: {
     // Header
@@ -557,7 +557,7 @@ export const translations = {
     contactUs: '문의하기',
     termsOfService: '서비스 약관',
     privacyPolicy: '개인정보 보호정책',
-    copyright: '© 2023-2026 ZanovaFashion. 판권 소유.',
+    copyright: '© 2023-2026 ZaloraFashion. 판권 소유.',
   },
   tr: {
     // Header
@@ -586,7 +586,7 @@ export const translations = {
     contactUs: 'İletişim',
     termsOfService: 'Hizmet Şartları',
     privacyPolicy: 'Gizlilik Politikası',
-    copyright: '© 2023-2026 ZanovaFashion. Tüm hakları saklıdır.',
+    copyright: '© 2023-2026 ZaloraFashion. Tüm hakları saklıdır.',
   },
   pt: {
     // Header
@@ -615,7 +615,7 @@ export const translations = {
     contactUs: 'Contate-nos',
     termsOfService: 'Termos de Serviço',
     privacyPolicy: 'Política de Privacidade',
-    copyright: '© 2023-2026 ZanovaFashion. Todos os direitos reservados.',
+    copyright: '© 2023-2026 ZaloraFashion. Todos os direitos reservados.',
   },
   ru: {
     // Header
@@ -644,7 +644,7 @@ export const translations = {
     contactUs: 'Связаться с нами',
     termsOfService: 'Условия использования',
     privacyPolicy: 'Политика конфиденциальности',
-    copyright: '© 2023-2026 ZanovaFashion. Все права защищены.',
+    copyright: '© 2023-2026 ZaloraFashion. Все права защищены.',
   },
   id: {
     // Header
@@ -673,7 +673,7 @@ export const translations = {
     contactUs: 'Hubungi Kami',
     termsOfService: 'Syarat Layanan',
     privacyPolicy: 'Kebijakan Privasi',
-    copyright: '© 2023-2026 ZanovaFashion. Hak cipta dilindungi.',
+    copyright: '© 2023-2026 ZaloraFashion. Hak cipta dilindungi.',
   },
   it: {
     // Header
@@ -702,7 +702,7 @@ export const translations = {
     contactUs: 'Contattaci',
     termsOfService: 'Termini di Servizio',
     privacyPolicy: 'Privacy Policy',
-    copyright: '© 2023-2026 ZanovaFashion. Tutti i diritti riservati.',
+    copyright: '© 2023-2026 ZaloraFashion. Tutti i diritti riservati.',
   },
 } as const
 

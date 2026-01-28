@@ -65,7 +65,7 @@ export function HomePageClient({
           <Link href="/" className="flex items-center">
             <Image
               src="/images/logo.png"
-              alt="ZANOVA"
+              alt="ZALORA"
               width={120}
               height={40}
               className="object-contain"
@@ -119,7 +119,7 @@ export function HomePageClient({
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 px-4 mt-10 lg:mt-0 lg:px-0">
+      <div className="flex-1 px-4 mt-10 lg:mt-0 lg:px-6">
         {/* Hero Slider - Desktop */}
         <div className="hidden lg:block mb-8">
           <HeroSlider slides={heroSlides} />

@@ -238,7 +238,7 @@ export function HomepageClient({ heroSlides: initialSlides }: HomepageClientProp
                     id="title"
                     value={formData.title}
                     onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                    placeholder="Welcome to ZANOVA"
+                    placeholder="Welcome to ZALORA"
                   />
                 </div>
                 <div>

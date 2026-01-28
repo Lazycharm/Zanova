@@ -5,7 +5,7 @@ import { CategoriesClient } from './categories-client'
 export const revalidate = 300
 
 export const metadata = {
-  title: 'Categories - ZANOVA',
+  title: 'Categories - ZALORA',
   description: 'Browse all product categories',
 }
 

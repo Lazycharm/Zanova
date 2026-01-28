@@ -1,4 +1,4 @@
-// Prisma Schema for ZANOVA E-commerce Platform
+// Prisma Schema for ZALORA E-commerce Platform
 // Supports: Users, Shops, Products, Orders, Payments, Support, CMS
 
 generator client {

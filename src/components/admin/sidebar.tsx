@@ -88,7 +88,7 @@ export function AdminSidebar({ user }: { user: User }) {
         <div className="flex items-center gap-3 h-16 px-6 border-b border-border">
           <Image
             src="/images/logo.png"
-            alt="ZANOVA"
+            alt="ZALORA"
             width={100}
             height={32}
             className="object-contain"

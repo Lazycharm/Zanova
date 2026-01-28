@@ -56,10 +56,10 @@ export function LoadingScreen() {
         <div className="relative w-[200px] h-[200px] flex items-center justify-center">
           {/* Spinning Ring */}
           <div className="absolute inset-0 spinning-ring"></div>
-          {/* ZANOVA Logo in center */}
+          {/* ZALORA Logo in center */}
           <Image
             src="/images/logo.png"
-            alt="ZANOVA Logo"
+            alt="ZALORA Logo"
             width={80}
             height={80}
             className="object-contain z-10"
@@ -80,7 +80,7 @@ export function LoadingScreen() {
             <div className="flex justify-center mb-8">
               <Image
                 src="/images/logo.png"
-                alt="ZANOVA Logo"
+                alt="ZALORA Logo"
                 width={200}
                 height={80}
                 className="object-contain"
@@ -161,7 +161,7 @@ export function LoadingScreen() {
               3 Big Weapon
             </h2>
             <p className="text-xl text-primary font-semibold text-center mb-12">
-              Zanova Fashion Marketing Matrix
+              Zalora Fashion Marketing Matrix
             </p>
 
             <div className="grid md:grid-cols-3 gap-8">
@@ -229,7 +229,7 @@ export function LoadingScreen() {
         <section className="py-16 px-4 bg-gradient-to-r from-primary to-primary/80">
           <div className="container mx-auto max-w-4xl text-center">
             <h2 className="text-3xl lg:text-4xl font-bold text-white mb-8">
-              Join now and share growth with ZanovaFashion!
+              Join now and share growth with ZaloraFashion!
             </h2>
             <Button
               size="lg"
@@ -244,7 +244,7 @@ export function LoadingScreen() {
 
         {/* Footer */}
         <footer className="py-6 px-4 bg-gray-900 text-white text-center">
-          <p className="text-sm">Copyright © 2023-2026 ZanovaFashion. All rights reserved.</p>
+          <p className="text-sm">Copyright © 2023-2026 ZaloraFashion. All rights reserved.</p>
         </footer>
       </div>
     </div>

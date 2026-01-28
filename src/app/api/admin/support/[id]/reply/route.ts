@@ -34,7 +34,7 @@ export async function POST(
       data: {
         ticketId: params.id,
         senderId: session.userId,
-        senderEmail: user?.email || 'admin@zanova.com',
+        senderEmail: user?.email || 'admin@zalora.com',
         message,
         isFromAdmin: true,
       },

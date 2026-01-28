@@ -3,7 +3,7 @@ import { db } from '@/lib/db'
 import { DealsClient } from './deals-client'
 
 export const metadata = {
-  title: 'Deals & Sales - ZANOVA',
+  title: 'Deals & Sales - ZALORA',
   description: 'Best deals and discounts on fashion products',
 }
 

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Image from 'next/image'
 import { Icon } from '@iconify/react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/lib/utils'
@@ -28,7 +29,7 @@ export function ChatWidget() {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '0',
-      text: "Hi! I'm ZANOVA's AI assistant. How can I help you today?",
+      text: "Hi! I'm ZALORA's AI assistant. How can I help you today?",
       isBot: true,
       timestamp: new Date(),
     },
@@ -165,8 +166,16 @@ export function ChatWidget() {
           'hover:scale-105 transition-transform'
         )}
       >
-        <Icon icon="solar:chat-round-dots-bold" className="size-6" />
-        <span className="text-[9px] font-bold">Support</span>
+        <div className="relative size-6">
+          <Image
+            src="/assistant.png"
+            alt="Assistant"
+            fill
+            className="object-contain"
+            unoptimized
+          />
+        </div>
+        <span className="text-[9px] font-bold">Assistant</span>
       </button>
 
       {/* Chat Window */}
@@ -185,11 +194,19 @@ export function ChatWidget() {
             {/* Header */}
             <div className="bg-primary px-4 py-3 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="size-8 rounded-full bg-white/20 flex items-center justify-center">
-                  <Icon icon="solar:chat-round-dots-bold" className="size-5 text-white" />
+                <div className="size-8 rounded-full bg-white/20 flex items-center justify-center overflow-hidden">
+                  <div className="relative size-6">
+                    <Image
+                      src="/assistant.png"
+                      alt="Assistant"
+                      fill
+                      className="object-contain"
+                      unoptimized
+                    />
+                  </div>
                 </div>
                 <div>
-                  <h3 className="text-sm font-semibold text-white">ZANOVA Support</h3>
+                  <h3 className="text-sm font-semibold text-white">ZALORA Assistant</h3>
                   <p className="text-[10px] text-white/70">AI Assistant</p>
                 </div>
               </div>

@@ -9,10 +9,10 @@ async function main() {
   // Create admin user
   const adminPassword = await bcrypt.hash(process.env.ADMIN_PASSWORD || 'admin123', 12)
   const admin = await prisma.user.upsert({
-    where: { email: process.env.ADMIN_EMAIL || 'admin@zanova.com' },
+    where: { email: process.env.ADMIN_EMAIL || 'admin@zalora.com' },
     update: {},
     create: {
-      email: process.env.ADMIN_EMAIL || 'admin@zanova.com',
+      email: process.env.ADMIN_EMAIL || 'admin@zalora.com',
       password: adminPassword,
       name: 'Admin',
       role: UserRole.ADMIN,
@@ -25,10 +25,10 @@ async function main() {
   // Create demo user
   const userPassword = await bcrypt.hash('user123', 12)
   const user = await prisma.user.upsert({
-    where: { email: 'user@zanova.com' },
+    where: { email: 'user@zalora.com' },
     update: {},
     create: {
-      email: 'user@zanova.com',
+      email: 'user@zalora.com',
       password: userPassword,
       name: 'Demo User',
       role: UserRole.USER,
@@ -42,10 +42,10 @@ async function main() {
   // Create demo seller
   const sellerPassword = await bcrypt.hash('seller123', 12)
   const seller = await prisma.user.upsert({
-    where: { email: 'seller@zanova.com' },
+    where: { email: 'seller@zalora.com' },
     update: {},
     create: {
-      email: 'seller@zanova.com',
+      email: 'seller@zalora.com',
       password: sellerPassword,
       name: 'Demo Seller',
       role: UserRole.USER,
@@ -236,7 +236,7 @@ async function main() {
 
   // Create default settings
   const settings = [
-    { key: 'site_name', value: 'ZANOVA', type: 'string' },
+    { key: 'site_name', value: 'ZALORA', type: 'string' },
     { key: 'site_description', value: 'Premium Fashion & Lifestyle Store', type: 'string' },
     { key: 'currency', value: 'USD', type: 'string' },
     { key: 'crypto_enabled', value: 'true', type: 'boolean' },
@@ -305,12 +305,12 @@ async function main() {
     {
       slug: 'about',
       title: 'About Us',
-      content: '<h1>About ZANOVA</h1><p>ZANOVA is a premium fashion and lifestyle ecommerce platform. We curate the best products from around the world and bring them to you with seamless crypto payments.</p><p>Founded in 2024, we\'re on a mission to make fashion accessible to everyone while embracing the future of payments.</p>',
+      content: '<h1>About ZALORA</h1><p>ZALORA is a premium fashion and lifestyle ecommerce platform. We curate the best products from around the world and bring them to you with seamless crypto payments.</p><p>Founded in 2024, we\'re on a mission to make fashion accessible to everyone while embracing the future of payments.</p>',
     },
     {
       slug: 'terms',
       title: 'Terms & Conditions',
-      content: '<h1>Terms & Conditions</h1><p>Welcome to ZANOVA. By using our services, you agree to these terms.</p><h2>1. Account</h2><p>You must be 18 or older to create an account.</p><h2>2. Payments</h2><p>All crypto payments are final and non-refundable once confirmed on the blockchain.</p>',
+      content: '<h1>Terms & Conditions</h1><p>Welcome to ZALORA. By using our services, you agree to these terms.</p><h2>1. Account</h2><p>You must be 18 or older to create an account.</p><h2>2. Payments</h2><p>All crypto payments are final and non-refundable once confirmed on the blockchain.</p>',
     },
     {
       slug: 'privacy',

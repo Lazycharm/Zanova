@@ -32,13 +32,13 @@ const features = [
   {
     icon: 'solar:box-bold',
     title: 'Efficient logistics',
-    description: 'Lay an efficient logistics network to solve cross-border logistics problems. ZanovaFashion Logistics Service SLS & Localized Fulfillment',
+    description: 'Lay an efficient logistics network to solve cross-border logistics problems. ZaloraFashion Logistics Service SLS & Localized Fulfillment',
     image: '/imgs/index/logistics.jpg',
   },
   {
     icon: 'solar:wallet-bold',
     title: 'Safe and fast payment',
-    description: 'Sellers can withdraw funds through ZanovaFashion official wallet, or third-party payment service providers LianLian, Payoneer, PingPong. The transaction is safe and fast, and the platform payment cycle is once a week',
+    description: 'Sellers can withdraw funds through ZaloraFashion official wallet, or third-party payment service providers LianLian, Payoneer, PingPong. The transaction is safe and fast, and the platform payment cycle is once a week',
     image: '/imgs/index/gathering.jpg',
   },
   {
@@ -91,7 +91,7 @@ export function CountrySelection() {
         <div className="flex justify-center mb-8">
           <Image
             src="/images/logo.png"
-            alt="ZANOVA"
+            alt="ZALORA"
             width={180}
             height={60}
             className="object-contain"
@@ -104,7 +104,7 @@ export function CountrySelection() {
           {/* Title */}
           <div className="text-center mb-12">
             <h1 className="text-3xl lg:text-4xl font-bold text-foreground mb-4">
-              ZanovaFashion is available in the following countries
+              ZaloraFashion is available in the following countries
             </h1>
             <p className="text-muted-foreground text-lg">
               Select your country to continue shopping
@@ -151,7 +151,7 @@ export function CountrySelection() {
           <div className="mb-16">
             <div className="text-center mb-8">
               <h2 className="text-2xl lg:text-3xl font-bold text-foreground mb-2">
-                Why Choose ZanovaFashion?
+                Why Choose ZaloraFashion?
               </h2>
               <p className="text-muted-foreground">
                 Professional cross-border solutions for your business
@@ -201,7 +201,7 @@ export function CountrySelection() {
       {/* Footer */}
       <div className="border-t border-border py-6">
         <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
-          Copyright © 2023-2026 ZanovaFashion. All rights reserved.
+          Copyright © 2023-2026 ZaloraFashion. All rights reserved.
         </div>
       </div>
     </div>
