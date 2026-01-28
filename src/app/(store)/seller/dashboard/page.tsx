@@ -131,5 +131,13 @@ export default async function SellerDashboardPage() {
 
   const stats = await getSellerStats(currentUser.id, user?.shop?.id || null)
 
-  return <SellerDashboardClient stats={stats} shop={user?.shop || null} />
+  // Convert Decimal fields to numbers for client component
+  const shopData = user?.shop ? {
+    ...user.shop,
+    balance: Number(user.shop.balance),
+    rating: Number(user.shop.rating),
+    commissionRate: Number(user.shop.commissionRate),
+  } : null
+
+  return <SellerDashboardClient stats={stats} shop={shopData} />
 }

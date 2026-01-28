@@ -80,9 +80,17 @@ export default async function SellerProductPage({
     redirect('/seller/products')
   }
 
+  // Convert Decimal fields to numbers for client component
+  const productData = product ? {
+    ...product,
+    price: Number(product.price),
+    comparePrice: product.comparePrice ? Number(product.comparePrice) : null,
+    costPrice: product.costPrice ? Number(product.costPrice) : null,
+  } : null
+
   return (
     <SellerProductFormClient
-      product={product}
+      product={productData}
       categories={formData.categories}
     />
   )

@@ -29,6 +29,7 @@ export async function PATCH(
       rating,
       commissionRate,
       followers,
+      totalSales,
     } = body
 
     const updateData: any = {}
