@@ -23,9 +23,18 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    // Validate form
+    if (!formData.email || !formData.password) {
+      toast.error('Please fill in all fields')
+      return
+    }
+
     setLoading(true)
 
     try {
+      console.log('[LOGIN] Attempting login for:', formData.email)
+      
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -33,17 +42,21 @@ export default function LoginPage() {
         credentials: 'include', // Important for cookies to be set
       })
 
+      console.log('[LOGIN] Response status:', res.status)
       const data = await res.json()
+      console.log('[LOGIN] Response data:', data)
 
       if (!res.ok) {
         throw new Error(data.error || 'Login failed')
       }
 
       // Fetch user data
+      console.log('[LOGIN] Fetching user data...')
       const userRes = await fetch('/api/auth/me', {
         credentials: 'include', // Important for cookies to be sent
       })
       const userData = await userRes.json()
+      console.log('[LOGIN] User data:', userData)
       
       if (userRes.ok && userData.user) {
         setUser(userData.user)
@@ -55,8 +68,11 @@ export default function LoginPage() {
         } else {
           router.push('/')
         }
+      } else {
+        throw new Error('Failed to fetch user data')
       }
     } catch (error) {
+      console.error('[LOGIN] Error:', error)
       toast.error(error instanceof Error ? error.message : 'Login failed')
     } finally {
       setLoading(false)
@@ -123,8 +139,46 @@ export default function LoginPage() {
                   required
                 />
               </div>
-              <Button type="submit" className="w-full" loading={loading}>
-                Log In
+              <Button 
+                type="submit" 
+                className="w-full" 
+                disabled={loading}
+                onClick={(e) => {
+                  // Ensure form validation happens
+                  const form = e.currentTarget.closest('form')
+                  if (form && !form.checkValidity()) {
+                    form.reportValidity()
+                    return
+                  }
+                }}
+              >
+                {loading ? (
+                  <>
+                    <svg
+                      className="mr-2 h-4 w-4 animate-spin inline"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      />
+                    </svg>
+                    Logging in...
+                  </>
+                ) : (
+                  'Log In'
+                )}
               </Button>
             </form>
 
