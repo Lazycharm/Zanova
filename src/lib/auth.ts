@@ -133,9 +133,15 @@ export async function login(email: string, password: string) {
       })
     } catch (dbError) {
       console.error('[LOGIN] Database query error:', dbError)
+      const errorMessage = dbError instanceof Error ? dbError.message : 'Unknown database error'
+      console.error('[LOGIN] Error details:', {
+        message: errorMessage,
+        name: dbError instanceof Error ? dbError.name : 'Unknown',
+        stack: dbError instanceof Error ? dbError.stack : undefined,
+      })
       return { 
         success: false, 
-        error: 'Database connection error. Please check your database configuration and ensure it has been seeded with initial data.' 
+        error: `Database connection error: ${errorMessage}. Please check your DATABASE_URL configuration.` 
       }
     }
 
