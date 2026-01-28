@@ -5,32 +5,52 @@ import { HomePageClient } from './home-client'
 export const dynamic = 'force-dynamic'
 
 async function getHomeData() {
-  const [featuredProducts, newArrivals, categories, heroSlides] = await Promise.all([
-    db.product.findMany({
-      where: { isFeatured: true, status: 'PUBLISHED' },
-      take: 4,
-      include: { images: { where: { isPrimary: true }, take: 1 } },
-      orderBy: { createdAt: 'desc' },
-    }),
-    db.product.findMany({
-      where: { status: 'PUBLISHED' },
-      take: 4,
-      include: { images: { where: { isPrimary: true }, take: 1 } },
-      orderBy: { createdAt: 'desc' },
-    }),
-    db.category.findMany({
-      where: { isActive: true, showOnHome: true, parentId: null },
-      take: 12,
-      orderBy: { sortOrder: 'asc' },
-    }),
-    db.heroSlide.findMany({
-      where: { isActive: true },
-      orderBy: { sortOrder: 'asc' },
-      take: 5,
-    }),
-  ])
+  // Check if database is available
+  if (!process.env.DATABASE_URL) {
+    return {
+      featuredProducts: [],
+      newArrivals: [],
+      categories: [],
+      heroSlides: [],
+    }
+  }
 
-  return { featuredProducts, newArrivals, categories, heroSlides }
+  try {
+    const [featuredProducts, newArrivals, categories, heroSlides] = await Promise.all([
+      db.product.findMany({
+        where: { isFeatured: true, status: 'PUBLISHED' },
+        take: 4,
+        include: { images: { where: { isPrimary: true }, take: 1 } },
+        orderBy: { createdAt: 'desc' },
+      }),
+      db.product.findMany({
+        where: { status: 'PUBLISHED' },
+        take: 4,
+        include: { images: { where: { isPrimary: true }, take: 1 } },
+        orderBy: { createdAt: 'desc' },
+      }),
+      db.category.findMany({
+        where: { isActive: true, showOnHome: true, parentId: null },
+        take: 12,
+        orderBy: { sortOrder: 'asc' },
+      }),
+      db.heroSlide.findMany({
+        where: { isActive: true },
+        orderBy: { sortOrder: 'asc' },
+        take: 5,
+      }),
+    ])
+
+    return { featuredProducts, newArrivals, categories, heroSlides }
+  } catch (error) {
+    console.error('Error fetching home data:', error)
+    return {
+      featuredProducts: [],
+      newArrivals: [],
+      categories: [],
+      heroSlides: [],
+    }
+  }
 }
 
 export default async function HomePage() {

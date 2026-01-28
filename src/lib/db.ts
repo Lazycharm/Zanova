@@ -20,12 +20,29 @@ if (isDatabaseAvailable) {
     globalForPrisma.prisma = dbInstance
   }
 } else {
-  // Create a mock PrismaClient that throws helpful errors
+  // Create a mock PrismaClient that returns empty results instead of throwing
+  // This allows the app to run without crashing when DATABASE_URL is missing
+  const createMockModel = () => ({
+    findMany: async () => [],
+    findUnique: async () => null,
+    findFirst: async () => null,
+    create: async () => {
+      throw new Error('DATABASE_URL is not configured. Cannot create records.')
+    },
+    update: async () => {
+      throw new Error('DATABASE_URL is not configured. Cannot update records.')
+    },
+    delete: async () => {
+      throw new Error('DATABASE_URL is not configured. Cannot delete records.')
+    },
+    count: async () => 0,
+    aggregate: async () => ({ _count: 0, _sum: null, _avg: null, _min: null, _max: null }),
+  })
+
   dbInstance = new Proxy({} as PrismaClient, {
-    get() {
-      throw new Error(
-        'DATABASE_URL is not configured. Please set it in your environment variables.'
-      )
+    get(_target, prop) {
+      // Return a mock model for any property access
+      return createMockModel()
     },
   })
 }
