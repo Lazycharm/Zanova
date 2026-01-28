@@ -19,8 +19,18 @@ if (isDatabaseAvailable) {
           url: process.env.DATABASE_URL,
         },
       },
+      // Optimize for serverless environments (Netlify Functions)
+      // Connection timeout settings for serverless functions
+      __internal: {
+        engine: {
+          connectTimeout: 10000, // 10 seconds
+          queryTimeout: 20000, // 20 seconds
+        },
+      },
     })
 
+  // In production (Netlify), don't reuse the global instance to avoid connection issues
+  // Each serverless function invocation should create a fresh connection
   if (process.env.NODE_ENV !== 'production') {
     globalForPrisma.prisma = dbInstance
   }
