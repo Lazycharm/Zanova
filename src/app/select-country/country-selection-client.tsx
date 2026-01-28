@@ -69,8 +69,14 @@ const getFlagUrl = (countryCode: string) => {
 export function CountrySelection() {
   const router = useRouter()
   const [selectedCountry, setSelectedCountry] = useState<string | null>(null)
+  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
+    setMounted(true)
+    
+    // Only check localStorage after component mounts (client-side only)
+    if (typeof window === 'undefined') return
+    
     // Check if country was already selected - if so, redirect to homepage
     // But only redirect after a small delay to prevent flash
     const countrySelected = localStorage.getItem('country-selected')
@@ -82,6 +88,15 @@ export function CountrySelection() {
       return () => clearTimeout(timer)
     }
   }, [router])
+
+  // Don't render until mounted (prevents hydration issues)
+  if (!mounted) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white flex items-center justify-center">
+        <div className="text-gray-500">Loading...</div>
+      </div>
+    )
+  }
 
   const handleCountrySelect = (countryCode: string) => {
     setSelectedCountry(countryCode)

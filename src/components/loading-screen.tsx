@@ -8,12 +8,18 @@ import { Button } from '@/components/ui/button'
 
 export function LoadingScreen() {
   const [showLanding, setShowLanding] = useState(false)
-  const [isAnimating, setIsAnimating] = useState(true)
+  const [isAnimating, setIsAnimating] = useState(false) // Start as false, will be set to true if needed
   const [isRedirecting, setIsRedirecting] = useState(false)
+  const [mounted, setMounted] = useState(false)
   const router = useRouter()
   const pathname = usePathname()
 
   useEffect(() => {
+    setMounted(true)
+    
+    // Only check localStorage after component mounts (client-side only)
+    if (typeof window === 'undefined') return
+    
     // Check if user has already seen the welcome page
     const hasSeenWelcome = localStorage.getItem('has-seen-welcome')
     const isCountryPage = pathname === '/select-country'
@@ -46,6 +52,11 @@ export function LoadingScreen() {
       setIsRedirecting(false)
     }
   }, [pathname])
+
+  // Don't render anything until mounted (prevents hydration issues)
+  if (!mounted) {
+    return null
+  }
 
   const handleSettleIn = () => {
     // Mark that we're redirecting to prevent flash
