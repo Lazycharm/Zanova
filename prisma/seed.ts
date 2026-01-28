@@ -72,7 +72,7 @@ async function main() {
   // console.log('✅ Demo shop created:', shop.name)
   
   // Set shop to null for products (no demo shop)
-  const shop = null
+  const shop: { id: string } | null = null
 
   // Create categories
   const categories = [
