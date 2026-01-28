@@ -72,7 +72,8 @@ async function main() {
   // console.log('✅ Demo shop created:', shop.name)
   
   // Set shop to null for products (no demo shop)
-  const shop: { id: string } | null = null
+  // Type assertion to fix TypeScript error
+  const shop = null as { id: string } | null
 
   // Create categories
   const categories = [
@@ -120,7 +121,7 @@ async function main() {
       comparePrice: 160,
       stock: 50,
       categoryId: menShoesCategory!.id,
-      shopId: shop?.id || null,
+      shopId: (shop as { id: string } | null)?.id || null,
       status: ProductStatus.PUBLISHED,
       isFeatured: true,
       rating: 4.8,
@@ -136,7 +137,7 @@ async function main() {
       comparePrice: 30,
       stock: 200,
       categoryId: menClothingCategory!.id,
-      shopId: shop?.id || null,
+      shopId: (shop as { id: string } | null)?.id || null,
       status: ProductStatus.PUBLISHED,
       isFeatured: true,
       rating: 4.5,
@@ -152,7 +153,7 @@ async function main() {
       comparePrice: null,
       stock: 75,
       categoryId: accessoriesCategory!.id,
-      shopId: shop?.id || null,
+      shopId: (shop as { id: string } | null)?.id || null,
       status: ProductStatus.PUBLISHED,
       isFeatured: true,
       rating: 4.9,
@@ -168,7 +169,7 @@ async function main() {
       comparePrice: 160,
       stock: 100,
       categoryId: accessoriesCategory!.id,
-      shopId: shop?.id || null,
+      shopId: (shop as { id: string } | null)?.id || null,
       status: ProductStatus.PUBLISHED,
       isFeatured: true,
       rating: 4.7,
