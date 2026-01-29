@@ -1,4 +1,4 @@
-import { db } from '@/lib/db'
+import { supabaseAdmin } from '@/lib/supabase'
 import { notFound } from 'next/navigation'
 import { MerchantAgreementClient } from './merchant-agreement-client'
 
@@ -12,12 +12,14 @@ export const metadata = {
 
 async function getMerchantAgreementPage() {
   // Try to get from CMS pages first
-  const page = await db.page.findUnique({
-    where: { slug: 'merchant-agreement' },
-  })
+  const { data: page, error } = await supabaseAdmin
+    .from('pages')
+    .select('*')
+    .eq('slug', 'merchant-agreement')
+    .single()
 
   // If not found, return default content
-  if (!page || !page.isActive) {
+  if (error || !page || !page.isActive) {
     return {
       title: 'Merchant Agreement',
       content: `
@@ -28,66 +30,41 @@ async function getMerchantAgreementPage() {
         <p>To become a merchant, you must:</p>
         <ul>
           <li>Be at least 18 years old</li>
-          <li>Have a valid business license (where applicable)</li>
+          <li>Have a valid business license (if applicable)</li>
           <li>Provide accurate business information</li>
-          <li>Comply with all local and international laws</li>
+          <li>Comply with all applicable laws and regulations</li>
         </ul>
         
-        <h2>2. Product Listings</h2>
-        <p>Merchants are responsible for:</p>
+        <h2>2. Product Listing Requirements</h2>
+        <p>All products must:</p>
         <ul>
-          <li>Accurate product descriptions and images</li>
-          <li>Maintaining adequate stock levels</li>
-          <li>Setting competitive prices</li>
-          <li>Ensuring product quality and authenticity</li>
+          <li>Be accurately described with clear images</li>
+          <li>Comply with our product guidelines</li>
+          <li>Not infringe on intellectual property rights</li>
+          <li>Meet quality standards</li>
         </ul>
         
-        <h2>3. Commission Structure</h2>
-        <p>ZALORA charges a commission on each sale:</p>
-        <ul>
-          <li>Standard commission: 6% of sale price</li>
-          <li>Premium merchants: Negotiable rates</li>
-          <li>Commission is deducted from payment</li>
-        </ul>
+        <h2>3. Commission and Fees</h2>
+        <p>ZALORA charges a commission on each sale. Commission rates vary by product category and merchant level.</p>
         
         <h2>4. Payment Terms</h2>
-        <p>Payments are processed weekly:</p>
+        <p>Payments are processed according to our payment schedule. Merchants are responsible for providing accurate payment information.</p>
+        
+        <h2>5. Prohibited Activities</h2>
+        <p>Merchants may not:</p>
         <ul>
-          <li>Payments issued every Monday</li>
-          <li>Minimum payout threshold: $50</li>
-          <li>Payment methods: Bank transfer, crypto wallet</li>
+          <li>Engage in fraudulent activities</li>
+          <li>Manipulate reviews or ratings</li>
+          <li>Violate intellectual property rights</li>
+          <li>List prohibited items</li>
         </ul>
         
-        <h2>5. Responsibilities</h2>
-        <p>Merchants must:</p>
-        <ul>
-          <li>Fulfill orders within stated timeframes</li>
-          <li>Handle customer service inquiries</li>
-          <li>Process returns and refunds according to policy</li>
-          <li>Maintain high customer satisfaction ratings</li>
-        </ul>
+        <h2>6. Termination</h2>
+        <p>ZALORA reserves the right to suspend or terminate merchant accounts that violate these terms.</p>
         
-        <h2>6. Prohibited Items</h2>
-        <p>The following items are not allowed:</p>
-        <ul>
-          <li>Counterfeit or replica products</li>
-          <li>Illegal or restricted items</li>
-          <li>Items that violate intellectual property rights</li>
-          <li>Hazardous materials</li>
-        </ul>
-        
-        <h2>7. Termination</h2>
-        <p>ZALORA reserves the right to suspend or terminate merchant accounts for:</p>
-        <ul>
-          <li>Violation of terms and conditions</li>
-          <li>Poor customer service ratings</li>
-          <li>Fraudulent activity</li>
-          <li>Non-compliance with policies</li>
-        </ul>
-        
-        <h2>8. Contact</h2>
-        <p>For questions about this agreement, please contact our merchant support team at <a href="mailto:merchants@zalora.com">merchants@zalora.com</a></p>
+        <p>For questions, please contact our support team.</p>
       `,
+      isActive: true,
     }
   }
 

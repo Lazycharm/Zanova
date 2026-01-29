@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import { getCurrentUser } from '@/lib/auth'
-import { db } from '@/lib/db'
+import { supabaseAdmin } from '@/lib/supabase'
 import { SellerOrdersClient } from './orders-client'
 
 export const dynamic = 'force-dynamic'
@@ -16,12 +16,13 @@ async function getSellerOrders(userId: string, searchParams: SearchParams) {
   const skip = (page - 1) * limit
 
   // Get user's shop
-  const user = await db.user.findUnique({
-    where: { id: userId },
-    include: { shop: true },
-  })
+  const { data: user } = await supabaseAdmin
+    .from('users')
+    .select('shops (*)')
+    .eq('id', userId)
+    .single()
 
-  if (!user?.shop) {
+  if (!user?.shops || !Array.isArray(user.shops) || user.shops.length === 0) {
     return {
       orders: [],
       total: 0,
@@ -30,74 +31,117 @@ async function getSellerOrders(userId: string, searchParams: SearchParams) {
     }
   }
 
-  const where: any = {
-    items: {
-      some: {
-        product: {
-          shopId: user.shop.id,
-        },
-      },
-    },
+  const shop = user.shops[0]
+
+  // Get product IDs for this shop
+  const { data: shopProducts } = await supabaseAdmin
+    .from('products')
+    .select('id')
+    .eq('shopId', shop.id)
+
+  const productIds = (shopProducts || []).map((p: any) => p.id)
+
+  if (productIds.length === 0) {
+    return {
+      orders: [],
+      total: 0,
+      pages: 0,
+      page: 1,
+    }
   }
 
+  // Get order IDs that have items from this shop
+  const { data: orderItems } = await supabaseAdmin
+    .from('order_items')
+    .select('orderId')
+    .in('productId', productIds)
+
+  const orderIds = [...new Set((orderItems || []).map((item: any) => item.orderId))]
+
+  if (orderIds.length === 0) {
+    return {
+      orders: [],
+      total: 0,
+      pages: 0,
+      page: 1,
+    }
+  }
+
+  // Build orders query
+  let ordersQuery = supabaseAdmin
+    .from('orders')
+    .select(`
+      id,
+      orderNumber,
+      status,
+      paymentStatus,
+      total,
+      createdAt,
+      user:users!orders_userId_fkey (
+        id,
+        name,
+        email
+      )
+    `, { count: 'exact' })
+    .in('id', orderIds)
+
+  // Apply status filter
   if (searchParams.status && searchParams.status !== 'all') {
-    where.status = searchParams.status
+    ordersQuery = ordersQuery.eq('status', searchParams.status)
   }
 
-  const [orders, total] = await Promise.all([
-    db.order.findMany({
-      where,
-      skip,
-      take: limit,
-      orderBy: { createdAt: 'desc' },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
-        items: {
-          where: {
-            product: {
-              shopId: user.shop.id,
-            },
-          },
-          include: {
-            product: {
-              select: {
-                name: true,
-                slug: true,
-              },
-            },
-          },
-        },
-      },
-    }),
-    db.order.count({ where }),
-  ])
+  // Apply pagination and ordering
+  ordersQuery = ordersQuery.order('createdAt', { ascending: false }).range(skip, skip + limit - 1)
+
+  const { data: orders, count: total, error } = await ordersQuery
+
+  if (error) {
+    throw error
+  }
+
+  // Get items for each order
+  const ordersWithItems = await Promise.all(
+    (orders || []).map(async (order: any) => {
+      const { data: items } = await supabaseAdmin
+        .from('order_items')
+        .select(`
+          id,
+          name,
+          quantity,
+          price,
+          image,
+          product:products!order_items_productId_fkey (
+            name,
+            slug
+          )
+        `)
+        .eq('orderId', order.id)
+        .in('productId', productIds)
+
+      return {
+        id: order.id,
+        orderNumber: order.orderNumber,
+        status: order.status,
+        paymentStatus: order.paymentStatus,
+        total: Number(order.total || 0),
+        createdAt: order.createdAt,
+        userName: order.user?.name || 'Unknown',
+        userEmail: order.user?.email || '',
+        items: (items || []).map((item: any) => ({
+          id: item.id,
+          name: item.name,
+          quantity: item.quantity,
+          price: Number(item.price),
+          image: item.image,
+        })),
+      }
+    })
+  )
 
   return {
-    orders: orders.map((order) => ({
-      id: order.id,
-      orderNumber: order.orderNumber,
-      status: order.status,
-      paymentStatus: order.paymentStatus,
-      total: Number(order.total),
-      createdAt: order.createdAt,
-      userName: order.user.name,
-      userEmail: order.user.email,
-      items: order.items.map((item) => ({
-        id: item.id,
-        name: item.name,
-        quantity: item.quantity,
-        price: Number(item.price),
-        image: item.image,
-      })),
-    })),
-    total,
-    pages: Math.ceil(total / limit),
+    orders: ordersWithItems,
+    total: total || 0,
+    pages: Math.ceil((total || 0) / limit),
     page,
   }
 }
@@ -117,12 +161,14 @@ export default async function SellerOrdersPage({
     redirect('/account')
   }
 
-  const user = await db.user.findUnique({
-    where: { id: currentUser.id },
-    include: { shop: true },
-  })
+  // Check if user has shop
+  const { data: user } = await supabaseAdmin
+    .from('users')
+    .select('shops (*)')
+    .eq('id', currentUser.id)
+    .single()
 
-  if (!user?.shop) {
+  if (!user?.shops || !Array.isArray(user.shops) || user.shops.length === 0) {
     redirect('/seller/create-shop')
   }
 

@@ -1,4 +1,4 @@
-import { db } from '@/lib/db'
+import { supabaseAdmin } from '@/lib/supabase'
 import { CategoriesClient } from './categories-client'
 
 // Avoid prerender-time DB access on deploy/build environments.
@@ -10,24 +10,44 @@ export const metadata = {
 }
 
 async function getCategories() {
-  const categories = await db.category.findMany({
-    where: {
-      isActive: true,
-      parentId: null,
-    },
-    orderBy: { sortOrder: 'asc' },
-    include: {
-      _count: {
-        select: { products: true },
-      },
-      children: {
-        where: { isActive: true },
-        orderBy: { sortOrder: 'asc' },
-      },
-    },
-  })
+  const { data: categories, error } = await supabaseAdmin
+    .from('categories')
+    .select(`
+      *,
+      children:categories!categories_parentId_fkey (
+        *
+      )
+    `)
+    .eq('isActive', true)
+    .is('parentId', null)
+    .order('sortOrder', { ascending: true })
 
-  return categories
+  if (error) {
+    throw error
+  }
+
+  // Get product counts for each category
+  const categoriesWithCounts = await Promise.all(
+    (categories || []).map(async (category: any) => {
+      const { count } = await supabaseAdmin
+        .from('products')
+        .select('*', { count: 'exact', head: true })
+        .eq('categoryId', category.id)
+
+      // Filter active children
+      const activeChildren = (category.children || []).filter((c: any) => c.isActive)
+
+      return {
+        ...category,
+        children: activeChildren,
+        _count: {
+          products: count || 0,
+        },
+      }
+    })
+  )
+
+  return categoriesWithCounts
 }
 
 export default async function CategoriesPage() {
@@ -45,26 +65,8 @@ export default async function CategoriesPage() {
     { color: '#FBE9E7', iconColor: '#D84315' }, // Women Clothing
     { color: '#F1F8E9', iconColor: '#689F38' }, // Girls
     { color: '#EFEBE9', iconColor: '#5D4037' }, // Boys
-    { color: '#E0F7FA', iconColor: '#0097A7' }, // Electronics
-    { color: '#F5F5F5', iconColor: '#616161' }, // Home & Garden
+    { color: '#E0F7FA', iconColor: '#0097A7' }, // Global
   ]
 
-  const mappedCategories = categories.map((category, index) => ({
-    id: category.id,
-    name: category.name,
-    slug: category.slug,
-    description: category.description,
-    icon: category.icon || 'solar:box-bold',
-    image: category.image,
-    productCount: category._count.products,
-    subcategories: category.children.map((sub) => ({
-      id: sub.id,
-      name: sub.name,
-      slug: sub.slug,
-    })),
-    color: categoryColors[index]?.color || '#F5F5F5',
-    iconColor: categoryColors[index]?.iconColor || '#616161',
-  }))
-
-  return <CategoriesClient categories={mappedCategories} />
+  return <CategoriesClient categories={categories} categoryColors={categoryColors} />
 }

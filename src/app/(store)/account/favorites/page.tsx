@@ -1,25 +1,37 @@
 import { redirect } from 'next/navigation'
 import { getCurrentUser } from '@/lib/auth'
-import { db } from '@/lib/db'
+import { supabaseAdmin } from '@/lib/supabase'
 import { FavoritesClient } from './favorites-client'
 
 async function getUserFavorites(userId: string) {
-  const favorites = await db.favorite.findMany({
-    where: { userId },
-    include: {
-      product: {
-        include: {
-          images: {
-            where: { isPrimary: true },
-            take: 1,
-          },
-        },
-      },
-    },
-    orderBy: { createdAt: 'desc' },
-  })
+  const { data: favorites, error } = await supabaseAdmin
+    .from('favorites')
+    .select(`
+      userId,
+      productId,
+      product:products!favorites_productId_fkey (
+        id,
+        name,
+        slug,
+        price,
+        comparePrice,
+        rating,
+        totalReviews,
+        isFeatured,
+        images:product_images!inner (
+          url
+        )
+      )
+    `)
+    .eq('userId', userId)
+    .eq('product.images.isPrimary', true)
+    .order('createdAt', { ascending: false })
 
-  return favorites.map((fav) => ({
+  if (error) {
+    throw error
+  }
+
+  return (favorites || []).map((fav: any) => ({
     userId: fav.userId,
     productId: fav.productId,
     product: {
@@ -28,9 +40,9 @@ async function getUserFavorites(userId: string) {
       slug: fav.product.slug,
       price: Number(fav.product.price),
       comparePrice: fav.product.comparePrice ? Number(fav.product.comparePrice) : null,
-      rating: Number(fav.product.rating),
-      reviews: fav.product.totalReviews,
-      image: fav.product.images[0]?.url || '/placeholder-product.jpg',
+      rating: Number(fav.product.rating || 0),
+      reviews: fav.product.totalReviews || 0,
+      image: fav.product.images && fav.product.images.length > 0 ? fav.product.images[0].url : '/placeholder-product.jpg',
       isFeatured: fav.product.isFeatured,
     },
   }))

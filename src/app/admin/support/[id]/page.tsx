@@ -1,28 +1,33 @@
 import { notFound } from 'next/navigation'
-import { db } from '@/lib/db'
+import { supabaseAdmin } from '@/lib/supabase'
 import { TicketDetailClient } from './ticket-detail-client'
 
 async function getTicket(id: string) {
-  const ticket = await db.supportTicket.findUnique({
-    where: { id },
-    include: {
-      user: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          avatar: true,
-        },
-      },
-      messages: {
-        orderBy: { createdAt: 'asc' },
-      },
-    },
-  })
+  const { data: ticket, error } = await supabaseAdmin
+    .from('support_tickets')
+    .select(`
+      *,
+      user:users!support_tickets_userId_fkey (
+        id,
+        name,
+        email,
+        avatar
+      ),
+      messages:ticket_messages (
+        *
+      )
+    `)
+    .eq('id', id)
+    .single()
 
-  if (!ticket) {
+  if (error || !ticket) {
     return null
   }
+
+  // Sort messages by createdAt
+  const sortedMessages = (ticket.messages || []).sort(
+    (a: any, b: any) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+  )
 
   return {
     id: ticket.id,
@@ -30,21 +35,22 @@ async function getTicket(id: string) {
     subject: ticket.subject,
     status: ticket.status,
     priority: ticket.priority,
-    createdAt: ticket.createdAt.toISOString(),
-    updatedAt: ticket.updatedAt.toISOString(),
-    user: ticket.user ? {
-      id: ticket.user.id,
-      name: ticket.user.name,
-      email: ticket.user.email,
-      avatar: ticket.user.avatar,
-    } : null,
-    messages: ticket.messages.map(m => ({
-      id: m.id,
-      message: m.message,
-      senderEmail: m.senderEmail,
-      isFromAdmin: m.isFromAdmin,
-      isAI: m.isAI,
-      createdAt: m.createdAt.toISOString(),
+    createdAt: ticket.createdAt,
+    updatedAt: ticket.updatedAt,
+    user: ticket.user
+      ? {
+          id: ticket.user.id,
+          name: ticket.user.name,
+          email: ticket.user.email,
+          avatar: ticket.user.avatar,
+        }
+      : null,
+    messages: sortedMessages.map((msg: any) => ({
+      id: msg.id,
+      message: msg.message,
+      senderEmail: msg.senderEmail,
+      isFromAdmin: msg.isFromAdmin,
+      createdAt: msg.createdAt,
     })),
   }
 }

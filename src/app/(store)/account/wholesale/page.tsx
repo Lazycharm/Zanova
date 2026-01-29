@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import { getCurrentUser } from '@/lib/auth'
-import { db } from '@/lib/db'
+import { supabaseAdmin } from '@/lib/supabase'
 import { WholesaleClient } from './wholesale-client'
 
 export const dynamic = 'force-dynamic'
@@ -18,96 +18,75 @@ async function getWholesaleData(userId: string, searchParams: SearchParams) {
   const limit = 24
   const skip = (page - 1) * limit
 
-  const where: any = {
-    status: 'PUBLISHED',
-  }
+  // Build query
+  let productsQuery = supabaseAdmin
+    .from('products')
+    .select(`
+      *,
+      images:product_images!inner (
+        url
+      ),
+      category:categories!products_categoryId_fkey (
+        name
+      )
+    `, { count: 'exact' })
+    .eq('status', 'PUBLISHED')
+    .not('comparePrice', 'is', null)
+    .eq('images.isPrimary', true)
 
   // Category filter
   if (searchParams.category) {
-    where.categoryId = searchParams.category
+    productsQuery = productsQuery.eq('categoryId', searchParams.category)
   }
 
   // Price filter
-  if (searchParams.minPrice || searchParams.maxPrice) {
-    where.price = {}
-    if (searchParams.minPrice) {
-      where.price.gte = parseFloat(searchParams.minPrice)
-    }
-    if (searchParams.maxPrice) {
-      where.price.lte = parseFloat(searchParams.maxPrice)
-    }
+  if (searchParams.minPrice) {
+    productsQuery = productsQuery.gte('price', parseFloat(searchParams.minPrice))
+  }
+  if (searchParams.maxPrice) {
+    productsQuery = productsQuery.lte('price', parseFloat(searchParams.maxPrice))
   }
 
   // Search filter
   if (searchParams.search) {
-    where.OR = [
-      { name: { contains: searchParams.search, mode: 'insensitive' } },
-      { description: { contains: searchParams.search, mode: 'insensitive' } },
-    ]
+    productsQuery = productsQuery.or(`name.ilike.%${searchParams.search}%,description.ilike.%${searchParams.search}%`)
   }
 
-  const [products, total, categories, user] = await Promise.all([
-    db.product.findMany({
-      where,
-      skip,
-      take: limit,
-      orderBy: { createdAt: 'desc' },
-      include: {
-        images: {
-          where: { isPrimary: true },
-          take: 1,
-        },
-        category: {
-          select: { name: true },
-        },
-      },
-    }),
-    db.product.count({ where }),
-    db.category.findMany({
-      where: { isActive: true, parentId: null },
-      orderBy: { name: 'asc' },
-    }),
-    db.user.findUnique({
-      where: { id: userId },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        avatar: true,
-        balance: true,
-        shop: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-      },
-    }),
+  // Apply pagination and ordering
+  productsQuery = productsQuery.order('createdAt', { ascending: false }).range(skip, skip + limit - 1)
+
+  const [productsResult, categoriesResult] = await Promise.all([
+    productsQuery,
+    supabaseAdmin
+      .from('categories')
+      .select('id, name')
+      .eq('isActive', true)
+      .order('name', { ascending: true }),
   ])
 
+  if (productsResult.error) {
+    throw productsResult.error
+  }
+
+  const total = productsResult.count || 0
+
   return {
-    products: products.map((p) => ({
+    products: (productsResult.data || []).map((p: any) => ({
       id: p.id,
       name: p.name,
       slug: p.slug,
       price: Number(p.price),
       comparePrice: p.comparePrice ? Number(p.comparePrice) : null,
-      image: p.images[0]?.url || '/placeholder-product.jpg',
+      rating: Number(p.rating || 0),
+      reviews: p.totalReviews || 0,
+      image: p.images && p.images.length > 0 ? p.images[0].url : '/placeholder-product.jpg',
       categoryName: p.category?.name || 'Uncategorized',
-      categoryId: p.categoryId,
+      isFeatured: p.isFeatured,
     })),
     total,
     pages: Math.ceil(total / limit),
     page,
-    categories: categories.map(c => ({ id: c.id, name: c.name, slug: c.slug })),
-    user: user ? {
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      avatar: user.avatar,
-      balance: Number(user.balance),
-      shop: user.shop,
-    } : null,
+    categories: (categoriesResult.data || []).map((c: any) => ({ id: c.id, name: c.name })),
   }
 }
 
@@ -116,17 +95,12 @@ export default async function WholesalePage({
 }: {
   searchParams: SearchParams
 }) {
-  const currentUser = await getCurrentUser()
+  const user = await getCurrentUser()
 
-  if (!currentUser) {
+  if (!user) {
     redirect('/auth/login')
   }
 
-  if (!currentUser.canSell) {
-    redirect('/account')
-  }
-
-  const data = await getWholesaleData(currentUser.id, searchParams)
-
-  return <WholesaleClient {...data} searchParams={searchParams} />
+  const data = await getWholesaleData(user.id, searchParams)
+  return <WholesaleClient {...data} />
 }

@@ -1,49 +1,54 @@
 import { redirect } from 'next/navigation'
 import { getCurrentUser } from '@/lib/auth'
-import { db } from '@/lib/db'
+import { supabaseAdmin } from '@/lib/supabase'
 import { SellerOrderDetailsClient } from './order-details-client'
 
 async function getOrder(orderId: string, userId: string) {
-  const user = await db.user.findUnique({
-    where: { id: userId },
-    include: { shop: true },
-  })
+  // Get user's shop
+  const { data: user } = await supabaseAdmin
+    .from('users')
+    .select('shops (*)')
+    .eq('id', userId)
+    .single()
 
-  if (!user?.shop) {
+  if (!user?.shops || !Array.isArray(user.shops) || user.shops.length === 0) {
     return null
   }
 
-  const order = await db.order.findUnique({
-    where: { id: orderId },
-    include: {
-      user: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
-        },
-      },
-      address: true,
-      items: {
-        where: {
-          product: {
-            shopId: user.shop.id,
-          },
-        },
-        include: {
-          product: {
-            select: {
-              name: true,
-              slug: true,
-            },
-          },
-        },
-      },
-    },
-  })
+  const shop = user.shops[0]
+
+  // Get order
+  const { data: order, error } = await supabaseAdmin
+    .from('orders')
+    .select(`
+      *,
+      user:users!orders_userId_fkey (
+        id,
+        name,
+        email
+      ),
+      address:addresses (*),
+      items:order_items (
+        *,
+        product:products!order_items_productId_fkey (
+          name,
+          slug,
+          shopId
+        )
+      )
+    `)
+    .eq('id', orderId)
+    .single()
+
+  if (error || !order) {
+    return null
+  }
+
+  // Filter items to only include products from this shop
+  const shopItems = (order.items || []).filter((item: any) => item.product?.shopId === shop.id)
 
   // Verify order has items from this shop
-  if (!order || order.items.length === 0) {
+  if (shopItems.length === 0) {
     return null
   }
 
@@ -53,13 +58,15 @@ async function getOrder(orderId: string, userId: string) {
     subtotal: Number(order.subtotal),
     shipping: Number(order.shipping),
     tax: Number(order.tax),
-    items: order.items.map((item) => ({
+    items: shopItems.map((item: any) => ({
       ...item,
       price: Number(item.price),
-      product: item.product ? {
-        name: item.product.name,
-        slug: item.product.slug,
-      } : null,
+      product: item.product
+        ? {
+            name: item.product.name,
+            slug: item.product.slug,
+          }
+        : null,
     })),
   }
 }
@@ -77,15 +84,6 @@ export default async function SellerOrderDetailsPage({
 
   if (!currentUser.canSell) {
     redirect('/account')
-  }
-
-  const user = await db.user.findUnique({
-    where: { id: currentUser.id },
-    include: { shop: true },
-  })
-
-  if (!user?.shop) {
-    redirect('/seller/create-shop')
   }
 
   const order = await getOrder(params.id, currentUser.id)

@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import { getCurrentUser } from '@/lib/auth'
-import { db } from '@/lib/db'
+import { supabaseAdmin } from '@/lib/supabase'
 import { SellerProductFormClient } from '../product-form-client'
 
 export const dynamic = 'force-dynamic'
@@ -11,40 +11,59 @@ async function getProduct(id: string, userId: string) {
   }
 
   // Get user's shop
-  const user = await db.user.findUnique({
-    where: { id: userId },
-    include: { shop: true },
-  })
+  const { data: user } = await supabaseAdmin
+    .from('users')
+    .select('shops (*)')
+    .eq('id', userId)
+    .single()
 
-  if (!user?.shop) {
+  if (!user?.shops || !Array.isArray(user.shops) || user.shops.length === 0) {
     return null
   }
 
-  const product = await db.product.findUnique({
-    where: { id },
-    include: {
-      images: {
-        orderBy: { sortOrder: 'asc' },
-      },
-    },
-  })
+  const shop = user.shops[0]
+
+  // Get product
+  const { data: product, error } = await supabaseAdmin
+    .from('products')
+    .select(`
+      *,
+      images:product_images (*)
+    `)
+    .eq('id', id)
+    .single()
+
+  if (error || !product) {
+    return null
+  }
 
   // Verify product belongs to user's shop
-  if (!product || product.shopId !== user.shop.id) {
+  if (product.shopId !== shop.id) {
     return null
   }
 
-  return product
+  // Sort images by sortOrder
+  const sortedImages = (product.images || []).sort((a: any, b: any) => a.sortOrder - b.sortOrder)
+
+  return {
+    ...product,
+    images: sortedImages,
+  }
 }
 
 async function getFormData() {
-  const categories = await db.category.findMany({
-    where: { isActive: true },
-    orderBy: { name: 'asc' },
-  })
+  const { data: categories, error } = await supabaseAdmin
+    .from('categories')
+    .select('id, name')
+    .eq('isActive', true)
+    .order('name', { ascending: true })
+
+  if (error) {
+    throw error
+  }
 
   return {
-    categories: categories.map(c => ({ id: c.id, name: c.name })),
+    categories: (categories || []).map((c: any) => ({ id: c.id, name: c.name })),
   }
 }
 
@@ -63,12 +82,14 @@ export default async function SellerProductPage({
     redirect('/account')
   }
 
-  const user = await db.user.findUnique({
-    where: { id: currentUser.id },
-    include: { shop: true },
-  })
+  // Check if user has shop
+  const { data: user } = await supabaseAdmin
+    .from('users')
+    .select('shops (*)')
+    .eq('id', currentUser.id)
+    .single()
 
-  if (!user?.shop) {
+  if (!user?.shops || !Array.isArray(user.shops) || user.shops.length === 0) {
     redirect('/seller/create-shop')
   }
 
@@ -83,17 +104,14 @@ export default async function SellerProductPage({
   }
 
   // Convert Decimal fields to numbers for client component
-  const productData = product ? {
-    ...product,
-    price: Number(product.price),
-    comparePrice: product.comparePrice ? Number(product.comparePrice) : null,
-    costPrice: product.costPrice ? Number(product.costPrice) : null,
-  } : null
+  const productData = product
+    ? {
+        ...product,
+        price: Number(product.price),
+        comparePrice: product.comparePrice ? Number(product.comparePrice) : null,
+        costPrice: product.costPrice ? Number(product.costPrice) : null,
+      }
+    : null
 
-  return (
-    <SellerProductFormClient
-      product={productData}
-      categories={formData.categories}
-    />
-  )
+  return <SellerProductFormClient product={productData} categories={formData.categories} />
 }

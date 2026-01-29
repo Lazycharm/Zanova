@@ -1,4 +1,4 @@
-import { db } from '@/lib/db'
+import { supabaseAdmin } from '@/lib/supabase'
 import { notFound } from 'next/navigation'
 import { AboutPageClient } from './about-client'
 
@@ -11,9 +11,15 @@ export const metadata = {
 }
 
 async function getAboutPage() {
-  const page = await db.page.findUnique({
-    where: { slug: 'about' },
-  })
+  const { data: page, error } = await supabaseAdmin
+    .from('pages')
+    .select('*')
+    .eq('slug', 'about')
+    .single()
+
+  if (error || !page) {
+    return null
+  }
 
   return page
 }

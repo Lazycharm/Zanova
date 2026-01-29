@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import { getCurrentUser } from '@/lib/auth'
-import { db } from '@/lib/db'
+import { supabaseAdmin } from '@/lib/supabase'
 import { CreateShopClient } from './create-shop-client'
 
 export const dynamic = 'force-dynamic'
@@ -17,21 +17,21 @@ export default async function CreateShopPage() {
   }
 
   // Check if user already has a shop
-  const user = await db.user.findUnique({
-    where: { id: currentUser.id },
-    include: {
-      shop: true,
-    },
-  })
+  const { data: user } = await supabaseAdmin
+    .from('users')
+    .select('shops (*)')
+    .eq('id', currentUser.id)
+    .single()
 
-  if (user?.shop) {
+  if (user?.shops && Array.isArray(user.shops) && user.shops.length > 0) {
     redirect('/seller/shop')
   }
 
-  const categories = await db.category.findMany({
-    where: { isActive: true },
-    orderBy: { name: 'asc' },
-  })
+  const { data: categories } = await supabaseAdmin
+    .from('categories')
+    .select('id, name')
+    .eq('isActive', true)
+    .order('name', { ascending: true })
 
-  return <CreateShopClient categories={categories.map(c => ({ id: c.id, name: c.name }))} />
+  return <CreateShopClient categories={(categories || []).map((c: any) => ({ id: c.id, name: c.name }))} />
 }
