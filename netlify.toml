@@ -1,6 +1,6 @@
 # Netlify configuration for Next.js 14 App Router
 [build]
-  command = "npx prisma generate && npm run build"
+  command = "npm run build"
   publish = ".next"
 
 [dev]

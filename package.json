@@ -4,20 +4,14 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "prebuild": "node scripts/generate-prisma.js",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
-    "db:generate": "node scripts/generate-prisma.js",
-    "db:push": "npx prisma db push",
-    "db:migrate": "npx prisma migrate dev",
-    "db:seed": "tsx prisma/seed.ts",
-    "db:studio": "npx prisma studio"
+    "lint": "next lint"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.3.4",
     "@iconify/react": "^4.1.1",
-    "@prisma/client": "^5.9.1",
+    "@supabase/supabase-js": "^2.39.0",
     "@radix-ui/react-accordion": "^1.1.2",
     "@radix-ui/react-alert-dialog": "^1.0.5",
     "@radix-ui/react-avatar": "^1.0.4",
@@ -70,7 +64,6 @@
     "eslint": "^8.56.0",
     "eslint-config-next": "14.1.0",
     "postcss": "^8.4.33",
-    "prisma": "^5.9.1",
     "tailwindcss": "^3.4.1",
     "tsx": "^4.7.0",
     "typescript": "^5.3.3"

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
-import { db } from '@/lib/db'
-import { UserRole } from '@prisma/client'
+import { supabaseAdmin } from '@/lib/supabase'
+import { UserRole } from '@/lib/auth'
 
 export async function GET() {
   try {
@@ -15,10 +15,16 @@ export async function GET() {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
-    const settings = await db.setting.findMany()
+    const { data: settings, error } = await supabaseAdmin
+      .from('settings')
+      .select('key, value')
+    
+    if (error) {
+      throw error
+    }
     
     const settingsMap: Record<string, string> = {}
-    settings.forEach((s) => {
+    settings?.forEach((s) => {
       settingsMap[s.key] = s.value
     })
 
@@ -46,16 +52,16 @@ export async function POST(request: Request) {
     // Update each setting
     for (const [key, value] of Object.entries(settings)) {
       if (typeof value === 'string') {
-        await db.setting.upsert({
-          where: { key },
-          update: { value },
-          create: { 
-            key, 
-            value,
+        await supabaseAdmin
+          .from('settings')
+          .upsert({
+            key,
+            value: String(value),
             type: typeof value === 'boolean' ? 'boolean' : 
                   typeof value === 'number' ? 'number' : 'string'
-          },
-        })
+          }, {
+            onConflict: 'key',
+          })
       }
     }
 

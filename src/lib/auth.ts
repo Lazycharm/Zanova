@@ -1,8 +1,21 @@
 import { SignJWT, jwtVerify } from 'jose'
 import { cookies } from 'next/headers'
-import { db } from './db'
+import { supabaseAdmin } from './supabase'
 import bcrypt from 'bcryptjs'
-import { UserRole, UserStatus } from '@prisma/client'
+
+// Enums (replacing Prisma enums)
+export enum UserRole {
+  ADMIN = 'ADMIN',
+  MANAGER = 'MANAGER',
+  USER = 'USER',
+}
+
+export enum UserStatus {
+  ACTIVE = 'ACTIVE',
+  INACTIVE = 'INACTIVE',
+  BANNED = 'BANNED',
+  SUSPENDED = 'SUSPENDED',
+}
 
 const JWT_SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET || 'zalora-secret-key'
@@ -50,9 +63,9 @@ export async function getSession(): Promise<JWTPayload | null> {
 
 export async function getCurrentUser() {
   try {
-    // Check if database is available
-    if (!process.env.DATABASE_URL) {
-      console.warn('DATABASE_URL not configured, returning null user')
+    // Check if Supabase is configured
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      console.warn('Supabase not configured, returning null user')
       return null
     }
 
@@ -64,100 +77,96 @@ export async function getCurrentUser() {
       return null
     }
 
-    const [user, userSellingSetting] = await Promise.all([
-      db.user.findUnique({
-        where: { id: session.userId },
-        select: {
-          id: true,
-          email: true,
-          name: true,
-          avatar: true,
-          role: true,
-          status: true,
-          balance: true,
-          canSell: true,
-          shop: {
-            select: {
-              id: true,
-              name: true,
-              slug: true,
-              status: true,
-            },
-          },
-        },
-      }),
-      db.setting.findUnique({
-        where: { key: 'user_selling_enabled' },
-      }),
+    // Fetch user and shop in parallel
+    const [userResult, settingResult] = await Promise.all([
+      supabaseAdmin
+        .from('users')
+        .select(`
+          id,
+          email,
+          name,
+          avatar,
+          role,
+          status,
+          balance,
+          canSell,
+          shops (
+            id,
+            name,
+            slug,
+            status
+          )
+        `)
+        .eq('id', session.userId)
+        .single(),
+      supabaseAdmin
+        .from('settings')
+        .select('value')
+        .eq('key', 'user_selling_enabled')
+        .single(),
     ])
 
-    if (!user || user.status !== UserStatus.ACTIVE) return null
+    if (userResult.error || !userResult.data) {
+      return null
+    }
 
-    const userSellingEnabled = userSellingSetting?.value === 'true'
+    const user = userResult.data
+    if (user.status !== UserStatus.ACTIVE) return null
+
+    const userSellingEnabled = settingResult.data?.value === 'true'
+    const shop = Array.isArray(user.shops) && user.shops.length > 0 ? user.shops[0] : null
 
     return {
-      ...user,
-      balance: Number(user.balance),
-      canSell: user.canSell && userSellingEnabled, // Only true if both are enabled
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      avatar: user.avatar,
+      role: user.role as UserRole,
+      status: user.status as UserStatus,
+      balance: Number(user.balance || 0),
+      canSell: user.canSell && userSellingEnabled,
+      shop: shop ? {
+        id: shop.id,
+        name: shop.name,
+        slug: shop.slug,
+        status: shop.status,
+      } : null,
       isImpersonating: !!session.impersonatedBy,
       impersonatedBy: session.impersonatedBy,
     }
   } catch (error) {
     console.error('getCurrentUser error:', error)
-    // Return null on error to prevent crashes
-    // Database errors should not cause auth failures - let middleware handle token validation
     return null
   }
 }
 
 export async function login(email: string, password: string) {
   try {
-    // Check if database is available
-    if (!process.env.DATABASE_URL) {
-      console.error('[LOGIN] DATABASE_URL not configured')
+    // Check if Supabase is configured
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      console.error('[LOGIN] Supabase not configured')
       return { success: false, error: 'Database connection error. Please contact support.' }
     }
 
-    let user
-    try {
-      user = await db.user.findUnique({
-        where: { email },
-        select: {
-          id: true,
-          email: true,
-          password: true,
-          name: true,
-          role: true,
-          status: true,
-        },
-      })
-    } catch (dbError) {
-      console.error('[LOGIN] Database query error:', dbError)
-      const errorMessage = dbError instanceof Error ? dbError.message : 'Unknown database error'
-      console.error('[LOGIN] Error details:', {
-        message: errorMessage,
-        name: dbError instanceof Error ? dbError.name : 'Unknown',
-        stack: dbError instanceof Error ? dbError.stack : undefined,
-      })
-      return { 
-        success: false, 
-        error: `Database connection error: ${errorMessage}. Please check your DATABASE_URL configuration.` 
-      }
-    }
+    // Fetch user by email
+    const { data: user, error: userError } = await supabaseAdmin
+      .from('users')
+      .select('id, email, password, name, role, status')
+      .eq('email', email)
+      .single()
 
-    if (!user) {
-      // Check if any users exist at all (to help diagnose seeding issue)
-      try {
-        const userCount = await db.user.count()
-        if (userCount === 0) {
-          console.warn('[LOGIN] No users found in database. Database may need to be seeded.')
-          return { 
-            success: false, 
-            error: 'No users found. Please seed the database by running: npm run db:seed' 
-          }
+    if (userError || !user) {
+      // Check if any users exist
+      const { count } = await supabaseAdmin
+        .from('users')
+        .select('*', { count: 'exact', head: true })
+      
+      if (count === 0) {
+        console.warn('[LOGIN] No users found in database. Database may need to be seeded.')
+        return { 
+          success: false, 
+          error: 'No users found. Please seed the database.' 
         }
-      } catch (countError) {
-        console.error('[LOGIN] Error checking user count:', countError)
       }
       return { success: false, error: 'Invalid email or password' }
     }
@@ -176,22 +185,15 @@ export async function login(email: string, password: string) {
     }
 
     // Update last login
-    try {
-      await db.user.update({
-        where: { id: user.id },
-        data: {
-          lastLoginAt: new Date(),
-        },
-      })
-    } catch (error) {
-      console.error('Error updating last login:', error)
-      // Continue even if update fails
-    }
+    await supabaseAdmin
+      .from('users')
+      .update({ lastLoginAt: new Date().toISOString() })
+      .eq('id', user.id)
 
     const token = await createToken({
       userId: user.id,
       email: user.email,
-      role: user.role,
+      role: user.role as UserRole,
     })
 
     // Set cookie
@@ -210,18 +212,13 @@ export async function login(email: string, password: string) {
     }
 
     // Create session record
-    try {
-      await db.session.create({
-        data: {
-          userId: user.id,
-          token,
-          expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-        },
+    await supabaseAdmin
+      .from('sessions')
+      .insert({
+        userId: user.id,
+        token,
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
       })
-    } catch (error) {
-      console.error('Error creating session:', error)
-      // Continue even if session creation fails - cookie is set
-    }
 
     return { 
       success: true, 
@@ -229,7 +226,7 @@ export async function login(email: string, password: string) {
         id: user.id,
         email: user.email,
         name: user.name,
-        role: user.role,
+        role: user.role as UserRole,
       }
     }
   } catch (error) {
@@ -240,26 +237,22 @@ export async function login(email: string, password: string) {
 
 export async function loginAsUser(adminId: string, targetUserId: string) {
   // Verify admin
-  const admin = await db.user.findUnique({
-    where: { id: adminId },
-    select: { role: true, status: true },
-  })
+  const { data: admin } = await supabaseAdmin
+    .from('users')
+    .select('role, status')
+    .eq('id', adminId)
+    .single()
 
   if (!admin || (admin.role !== UserRole.ADMIN && admin.role !== UserRole.MANAGER)) {
     return { success: false, error: 'Unauthorized' }
   }
 
   // Get target user
-  const targetUser = await db.user.findUnique({
-    where: { id: targetUserId },
-    select: {
-      id: true,
-      email: true,
-      name: true,
-      role: true,
-      status: true,
-    },
-  })
+  const { data: targetUser } = await supabaseAdmin
+    .from('users')
+    .select('id, email, name, role, status')
+    .eq('id', targetUserId)
+    .single()
 
   if (!targetUser) {
     return { success: false, error: 'User not found' }
@@ -269,7 +262,7 @@ export async function loginAsUser(adminId: string, targetUserId: string) {
   const token = await createToken({
     userId: targetUser.id,
     email: targetUser.email,
-    role: targetUser.role,
+    role: targetUser.role as UserRole,
     impersonatedBy: adminId,
   })
 
@@ -294,20 +287,17 @@ export async function logout() {
   if (session) {
     // If impersonating, return to admin
     if (session.impersonatedBy) {
-      const admin = await db.user.findUnique({
-        where: { id: session.impersonatedBy },
-        select: {
-          id: true,
-          email: true,
-          role: true,
-        },
-      })
+      const { data: admin } = await supabaseAdmin
+        .from('users')
+        .select('id, email, role')
+        .eq('id', session.impersonatedBy)
+        .single()
 
       if (admin) {
         const token = await createToken({
           userId: admin.id,
           email: admin.email,
-          role: admin.role,
+          role: admin.role as UserRole,
         })
 
         const cookieStore = await cookies()
@@ -324,9 +314,10 @@ export async function logout() {
     }
 
     // Delete session from database
-    await db.session.deleteMany({
-      where: { userId: session.userId },
-    })
+    await supabaseAdmin
+      .from('sessions')
+      .delete()
+      .eq('userId', session.userId)
   }
 
   const cookieStore = await cookies()
@@ -341,25 +332,18 @@ export async function register(data: {
   name: string
 }) {
   try {
-    // Check if database is available
-    if (!process.env.DATABASE_URL) {
-      console.error('[REGISTER] DATABASE_URL not configured')
+    // Check if Supabase is configured
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      console.error('[REGISTER] Supabase not configured')
       return { success: false, error: 'Database connection error. Please contact support.' }
     }
 
-    let existingUser
-    try {
-      existingUser = await db.user.findUnique({
-        where: { email: data.email },
-      })
-    } catch (dbError) {
-      console.error('[REGISTER] Database query error:', dbError)
-      const errorMessage = dbError instanceof Error ? dbError.message : 'Unknown database error'
-      return { 
-        success: false, 
-        error: `Database connection error: ${errorMessage}. Please check your DATABASE_URL configuration.` 
-      }
-    }
+    // Check if user exists
+    const { data: existingUser } = await supabaseAdmin
+      .from('users')
+      .select('id')
+      .eq('email', data.email)
+      .single()
 
     if (existingUser) {
       return { success: false, error: 'Email already registered' }
@@ -367,27 +351,24 @@ export async function register(data: {
 
     const hashedPassword = await hashPassword(data.password)
 
-    let user
-    try {
-      user = await db.user.create({
-        data: {
-          email: data.email,
-          password: hashedPassword,
-          name: data.name,
-        },
-        select: {
-          id: true,
-          email: true,
-          name: true,
-          role: true,
-        },
+    // Create user
+    const { data: user, error: createError } = await supabaseAdmin
+      .from('users')
+      .insert({
+        email: data.email,
+        password: hashedPassword,
+        name: data.name,
+        role: UserRole.USER,
+        status: UserStatus.ACTIVE,
       })
-    } catch (createError) {
+      .select('id, email, name, role')
+      .single()
+
+    if (createError || !user) {
       console.error('[REGISTER] Database create error:', createError)
-      const errorMessage = createError instanceof Error ? createError.message : 'Unknown database error'
       return { 
         success: false, 
-        error: `Database connection error: ${errorMessage}. Please check your DATABASE_URL configuration.` 
+        error: `Registration failed: ${createError?.message || 'Unknown error'}` 
       }
     }
 
@@ -395,7 +376,7 @@ export async function register(data: {
     const token = await createToken({
       userId: user.id,
       email: user.email,
-      role: user.role,
+      role: user.role as UserRole,
     })
 
     const cookieStore = await cookies()

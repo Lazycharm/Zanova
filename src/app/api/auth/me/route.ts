@@ -3,9 +3,9 @@ import { getCurrentUser } from '@/lib/auth'
 
 export async function GET() {
   try {
-    // Check if DATABASE_URL is configured
-    if (!process.env.DATABASE_URL) {
-      console.error('DATABASE_URL not configured')
+    // Check if Supabase is configured
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      console.error('Supabase not configured')
       return NextResponse.json(
         { error: 'Database not configured', user: null },
         { status: 503 }
@@ -25,10 +25,8 @@ export async function GET() {
   } catch (error: any) {
     console.error('Get user error:', error)
     
-    // Provide more specific error information
     const errorMessage = error?.message || 'Internal server error'
-    const isDatabaseError = errorMessage.includes('DATABASE_URL') || 
-                           errorMessage.includes('PrismaClientInitializationError') ||
+    const isDatabaseError = errorMessage.includes('Supabase') || 
                            errorMessage.includes('connection')
     
     return NextResponse.json(

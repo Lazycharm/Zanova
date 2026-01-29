@@ -28,12 +28,12 @@ export async function POST(request: Request) {
       )
     }
 
-    // Check if DATABASE_URL is configured
-    if (!process.env.DATABASE_URL) {
-      console.error('[REGISTER] DATABASE_URL not configured')
+    // Check if Supabase is configured
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      console.error('[REGISTER] Supabase not configured')
       return NextResponse.json(
         { 
-          error: 'Database not configured. Please set DATABASE_URL environment variable.',
+          error: 'Database not configured. Please set Supabase environment variables.',
           code: 'DATABASE_NOT_CONFIGURED'
         },
         { status: 503 }
@@ -50,9 +50,9 @@ export async function POST(request: Request) {
       let statusCode = 400
       let errorMessage = result.error || 'Registration failed'
       
-      if (errorMessage.includes('Database connection') || errorMessage.includes('DATABASE_URL')) {
+      if (errorMessage.includes('Database connection') || errorMessage.includes('Supabase')) {
         statusCode = 503
-        errorMessage = 'Database connection error. Please check your database configuration.'
+        errorMessage = 'Database connection error. Please check your Supabase configuration.'
       }
       
       return NextResponse.json(

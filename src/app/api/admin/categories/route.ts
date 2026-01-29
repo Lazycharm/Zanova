@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/db'
+import { supabaseAdmin } from '@/lib/supabase'
 import { getSession } from '@/lib/auth'
 
 export async function GET(req: NextRequest) {
@@ -10,19 +10,38 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const categories = await db.category.findMany({
-      orderBy: { sortOrder: 'asc' },
-      include: {
-        _count: {
-          select: { products: true },
-        },
-        parent: {
-          select: { name: true },
-        },
-      },
-    })
+    const { data: categories, error } = await supabaseAdmin
+      .from('categories')
+      .select(`
+        *,
+        parent:categories!parentId (
+          name
+        )
+      `)
+      .order('sortOrder', { ascending: true })
 
-    return NextResponse.json({ categories })
+    if (error) {
+      throw error
+    }
+
+    // Get product counts for each category
+    const categoriesWithCounts = await Promise.all(
+      (categories || []).map(async (category) => {
+        const { count } = await supabaseAdmin
+          .from('products')
+          .select('*', { count: 'exact', head: true })
+          .eq('categoryId', category.id)
+        
+        return {
+          ...category,
+          _count: {
+            products: count || 0,
+          },
+        }
+      })
+    )
+
+    return NextResponse.json({ categories: categoriesWithCounts })
   } catch (error) {
     console.error('Error fetching categories:', error)
     return NextResponse.json({ error: 'Failed to fetch categories' }, { status: 500 })
@@ -54,18 +73,27 @@ export async function POST(req: NextRequest) {
     }
 
     // Check if slug already exists
-    const existing = await db.category.findUnique({ where: { slug } })
+    const { data: existing } = await supabaseAdmin
+      .from('categories')
+      .select('id')
+      .eq('slug', slug)
+      .single()
+
     if (existing) {
       return NextResponse.json({ error: 'Slug already exists' }, { status: 400 })
     }
 
     // Get the highest sort order
-    const lastCategory = await db.category.findFirst({
-      orderBy: { sortOrder: 'desc' },
-    })
+    const { data: lastCategory } = await supabaseAdmin
+      .from('categories')
+      .select('sortOrder')
+      .order('sortOrder', { ascending: false })
+      .limit(1)
+      .single()
 
-    const category = await db.category.create({
-      data: {
+    const { data: category, error } = await supabaseAdmin
+      .from('categories')
+      .insert({
         name,
         slug,
         description: description || null,
@@ -75,8 +103,13 @@ export async function POST(req: NextRequest) {
         showOnHome: showOnHome !== undefined ? showOnHome : true,
         parentId: parentId || null,
         sortOrder: (lastCategory?.sortOrder || 0) + 1,
-      },
-    })
+      })
+      .select()
+      .single()
+
+    if (error) {
+      throw error
+    }
 
     return NextResponse.json({ category })
   } catch (error) {

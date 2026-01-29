@@ -1,22 +1,24 @@
 import { NextResponse } from 'next/server'
-import { PrismaClient, UserRole, UserStatus } from '@prisma/client'
+import { supabaseAdmin } from '@/lib/supabase'
+import { UserRole, UserStatus } from '@/lib/auth'
 import bcrypt from 'bcryptjs'
-
-const prisma = new PrismaClient()
 
 // Shared seeding logic
 async function performSeed() {
-  // Check if DATABASE_URL is configured
-  if (!process.env.DATABASE_URL) {
-    throw new Error('DATABASE_URL not configured')
+  // Check if Supabase is configured
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    throw new Error('Supabase not configured')
   }
 
   console.log('🌱 Starting database seed...')
 
   // Check if admin user already exists
-  const existingAdmin = await prisma.user.findUnique({
-    where: { email: process.env.ADMIN_EMAIL || 'admin@zalora.com' },
-  })
+  const adminEmail = process.env.ADMIN_EMAIL || 'admin@zalora.com'
+  const { data: existingAdmin } = await supabaseAdmin
+    .from('users')
+    .select('email')
+    .eq('email', adminEmail)
+    .single()
 
   if (existingAdmin) {
     return {
@@ -27,26 +29,31 @@ async function performSeed() {
 
   // Create admin user
   const adminPassword = await bcrypt.hash(process.env.ADMIN_PASSWORD || 'admin123', 12)
-  const admin = await prisma.user.upsert({
-    where: { email: process.env.ADMIN_EMAIL || 'admin@zalora.com' },
-    update: {},
-    create: {
-      email: process.env.ADMIN_EMAIL || 'admin@zalora.com',
+  const { data: admin, error: adminError } = await supabaseAdmin
+    .from('users')
+    .upsert({
+      email: adminEmail,
       password: adminPassword,
       name: 'Admin',
       role: UserRole.ADMIN,
       status: UserStatus.ACTIVE,
       canSell: true,
-    },
-  })
+    }, {
+      onConflict: 'email',
+    })
+    .select()
+    .single()
+
+  if (adminError || !admin) {
+    throw new Error(`Failed to create admin: ${adminError?.message}`)
+  }
   console.log('✅ Admin user created:', admin.email)
 
   // Create demo user
   const userPassword = await bcrypt.hash('user123', 12)
-  const user = await prisma.user.upsert({
-    where: { email: 'user@zalora.com' },
-    update: {},
-    create: {
+  const { data: user, error: userError } = await supabaseAdmin
+    .from('users')
+    .upsert({
       email: 'user@zalora.com',
       password: userPassword,
       name: 'Demo User',
@@ -54,16 +61,23 @@ async function performSeed() {
       status: UserStatus.ACTIVE,
       canSell: false,
       balance: 100,
-    },
-  })
-  console.log('✅ Demo user created:', user.email)
+    }, {
+      onConflict: 'email',
+    })
+    .select()
+    .single()
+
+  if (userError) {
+    console.warn('Failed to create demo user:', userError.message)
+  } else {
+    console.log('✅ Demo user created:', user?.email)
+  }
 
   // Create demo seller
   const sellerPassword = await bcrypt.hash('seller123', 12)
-  const seller = await prisma.user.upsert({
-    where: { email: 'seller@zalora.com' },
-    update: {},
-    create: {
+  const { data: seller, error: sellerError } = await supabaseAdmin
+    .from('users')
+    .upsert({
       email: 'seller@zalora.com',
       password: sellerPassword,
       name: 'Demo Seller',
@@ -71,9 +85,17 @@ async function performSeed() {
       status: UserStatus.ACTIVE,
       canSell: true,
       balance: 500,
-    },
-  })
-  console.log('✅ Demo seller created:', seller.email)
+    }, {
+      onConflict: 'email',
+    })
+    .select()
+    .single()
+
+  if (sellerError) {
+    console.warn('Failed to create demo seller:', sellerError.message)
+  } else {
+    console.log('✅ Demo seller created:', seller?.email)
+  }
 
   // Create categories
   const categories = [
@@ -93,15 +115,15 @@ async function performSeed() {
 
   for (let i = 0; i < categories.length; i++) {
     const cat = categories[i]
-    await prisma.category.upsert({
-      where: { slug: cat.slug },
-      update: {},
-      create: {
+    await supabaseAdmin
+      .from('categories')
+      .upsert({
         ...cat,
         sortOrder: i,
         isActive: true,
-      },
-    })
+      }, {
+        onConflict: 'slug',
+      })
   }
   console.log('✅ Categories created:', categories.length)
 
@@ -125,11 +147,11 @@ async function performSeed() {
   ]
 
   for (const setting of settings) {
-    await prisma.setting.upsert({
-      where: { key: setting.key },
-      update: {},
-      create: setting,
-    })
+    await supabaseAdmin
+      .from('settings')
+      .upsert(setting, {
+        onConflict: 'key',
+      })
   }
   console.log('✅ Settings created:', settings.length)
 
@@ -156,9 +178,9 @@ async function performSeed() {
   ]
 
   for (const slide of heroSlides) {
-    await prisma.heroSlide.create({
-      data: slide,
-    })
+    await supabaseAdmin
+      .from('hero_slides')
+      .insert(slide)
   }
   console.log('✅ Hero slides created:', heroSlides.length)
 
@@ -188,15 +210,12 @@ export async function POST(request: Request) {
     const result = await performSeed()
     
     if (result.alreadySeeded) {
-      await prisma.$disconnect()
       return NextResponse.json({
         success: true,
         message: 'Database already seeded. Admin user exists.',
         adminEmail: result.adminEmail,
       })
     }
-
-    await prisma.$disconnect()
 
     return NextResponse.json({
       success: true,
@@ -210,7 +229,6 @@ export async function POST(request: Request) {
     })
   } catch (error) {
     console.error('❌ Seed failed:', error)
-    await prisma.$disconnect()
     return NextResponse.json(
       {
         error: 'Seed failed',
@@ -232,7 +250,7 @@ export async function GET(request: Request) {
       return NextResponse.json(
         { 
           error: 'Unauthorized. Provide ?key=<SEED_SECRET_KEY> query parameter',
-          hint: `If SEED_SECRET_KEY is not set in Netlify, use: ?key=change-this-in-production`
+          hint: `If SEED_SECRET_KEY is not set, use: ?key=change-this-in-production`
         },
         { status: 401 }
       )
@@ -251,15 +269,12 @@ export async function GET(request: Request) {
     const result = await performSeed()
     
     if (result.alreadySeeded) {
-      await prisma.$disconnect()
       return NextResponse.json({
         success: true,
         message: 'Database already seeded. Admin user exists.',
         adminEmail: result.adminEmail,
       })
     }
-
-    await prisma.$disconnect()
 
     return NextResponse.json({
       success: true,
@@ -273,7 +288,6 @@ export async function GET(request: Request) {
     })
   } catch (error) {
     console.error('❌ Seed failed:', error)
-    await prisma.$disconnect()
     return NextResponse.json(
       {
         error: 'Seed failed',
