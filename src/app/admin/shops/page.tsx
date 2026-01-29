@@ -71,13 +71,13 @@ async function getShops(searchParams: SearchParams) {
         balance: Number(shop.balance || 0),
         rating: Number(shop.rating || 0),
         totalSales: shop.totalSales || 0,
+        commissionRate: Number(shop.commissionRate || 10),
+        logo: shop.logo,
         followers: shop.followers || 0,
         createdAt: shop.createdAt,
         user: shop.user,
-        _count: {
-          products: productsCount.count || 0,
-          orders: ordersCount.count || 0,
-        },
+        productCount: productsCount.count || 0,
+        orderCount: ordersCount.count || 0,
       }
     })
   )
@@ -102,5 +102,5 @@ export default async function ShopsPage({
   }
 
   const data = await getShops(searchParams)
-  return <ShopsClient {...data} />
+  return <ShopsClient {...data} searchParams={searchParams} />
 }

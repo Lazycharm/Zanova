@@ -42,7 +42,7 @@ async function getSellerStats(userId: string, shopId: string | null) {
     .select('orderId')
     .in('productId', productIds)
 
-  const orderIds = [...new Set((ordersWithShopProducts || []).map((item: any) => item.orderId))]
+  const orderIds = Array.from(new Set((ordersWithShopProducts || []).map((item: any) => item.orderId)))
 
   const [
     totalProductsResult,

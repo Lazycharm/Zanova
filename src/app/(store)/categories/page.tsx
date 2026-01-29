@@ -68,5 +68,5 @@ export default async function CategoriesPage() {
     { color: '#E0F7FA', iconColor: '#0097A7' }, // Global
   ]
 
-  return <CategoriesClient categories={categories} categoryColors={categoryColors} />
+  return <CategoriesClient categories={categories} />
 }

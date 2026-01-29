@@ -83,7 +83,7 @@ async function getProducts(searchParams: SearchParams) {
     productsQuery,
     supabaseAdmin
       .from('categories')
-      .select('id, name')
+      .select('id, name, slug')
       .eq('isActive', true)
       .order('name', { ascending: true }),
   ])
@@ -110,7 +110,7 @@ async function getProducts(searchParams: SearchParams) {
     total,
     pages: Math.ceil(total / limit),
     page,
-    categories: (categoriesResult.data || []).map((c: any) => ({ id: c.id, name: c.name })),
+    categories: (categoriesResult.data || []).map((c: any) => ({ id: c.id, name: c.name, slug: c.slug })),
   }
 }
 
@@ -128,5 +128,5 @@ export default async function ProductsPage({
 
 async function ProductsPageContent({ searchParams }: { searchParams: SearchParams }) {
   const data = await getProducts(searchParams)
-  return <ProductsClient {...data} />
+  return <ProductsClient {...data} searchParams={searchParams} />
 }

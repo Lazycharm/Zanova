@@ -38,8 +38,6 @@ async function getAccountData(userId: string) {
   const shop = user?.shops && Array.isArray(user.shops) && user.shops.length > 0 ? user.shops[0] : null
 
   return {
-    orders: ordersCount.count || 0,
-    favorites: favoritesCount.count || 0,
     user: user
       ? {
           id: user.id,
@@ -52,6 +50,10 @@ async function getAccountData(userId: string) {
           shop,
         }
       : null,
+    stats: {
+      orders: ordersCount.count || 0,
+      favorites: favoritesCount.count || 0,
+    },
   }
 }
 
@@ -63,5 +65,10 @@ export default async function AccountPage() {
   }
 
   const data = await getAccountData(currentUser.id)
-  return <AccountClient {...data} />
+  
+  if (!data.user) {
+    redirect('/auth/login')
+  }
+
+  return <AccountClient user={data.user} stats={data.stats} />
 }

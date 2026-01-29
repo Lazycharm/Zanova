@@ -56,7 +56,7 @@ async function getSellerOrders(userId: string, searchParams: SearchParams) {
     .select('orderId')
     .in('productId', productIds)
 
-  const orderIds = [...new Set((orderItems || []).map((item: any) => item.orderId))]
+  const orderIds = Array.from(new Set((orderItems || []).map((item: any) => item.orderId)))
 
   if (orderIds.length === 0) {
     return {

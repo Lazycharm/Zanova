@@ -121,5 +121,5 @@ export default async function SellerProductsPage({
   }
 
   const data = await getSellerProducts(user.id, searchParams)
-  return <SellerProductsClient {...data} />
+  return <SellerProductsClient {...data} searchParams={searchParams} />
 }

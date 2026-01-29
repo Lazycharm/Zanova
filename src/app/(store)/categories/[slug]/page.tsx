@@ -115,6 +115,7 @@ export default async function CategoryPage({
         total={data.total}
         pages={data.pages}
         page={data.page}
+        searchParams={searchParams}
       />
     </Suspense>
   )

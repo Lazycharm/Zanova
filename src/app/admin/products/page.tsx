@@ -92,5 +92,5 @@ export default async function ProductsPage({
   searchParams: SearchParams
 }) {
   const data = await getProducts(searchParams)
-  return <ProductsClient {...data} />
+  return <ProductsClient {...data} searchParams={searchParams} />
 }

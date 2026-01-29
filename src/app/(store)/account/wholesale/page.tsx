@@ -59,7 +59,7 @@ async function getWholesaleData(userId: string, searchParams: SearchParams) {
     productsQuery,
     supabaseAdmin
       .from('categories')
-      .select('id, name')
+      .select('id, name, slug')
       .eq('isActive', true)
       .order('name', { ascending: true }),
   ])
@@ -80,13 +80,14 @@ async function getWholesaleData(userId: string, searchParams: SearchParams) {
       rating: Number(p.rating || 0),
       reviews: p.totalReviews || 0,
       image: p.images && p.images.length > 0 ? p.images[0].url : '/placeholder-product.jpg',
+      categoryId: p.categoryId,
       categoryName: p.category?.name || 'Uncategorized',
       isFeatured: p.isFeatured,
     })),
     total,
     pages: Math.ceil(total / limit),
     page,
-    categories: (categoriesResult.data || []).map((c: any) => ({ id: c.id, name: c.name })),
+    categories: (categoriesResult.data || []).map((c: any) => ({ id: c.id, name: c.name, slug: c.slug })),
   }
 }
 
@@ -102,5 +103,5 @@ export default async function WholesalePage({
   }
 
   const data = await getWholesaleData(user.id, searchParams)
-  return <WholesaleClient {...data} />
+  return <WholesaleClient {...data} user={user} searchParams={searchParams} />
 }

@@ -90,5 +90,5 @@ export default async function UsersPage({
   searchParams: SearchParams
 }) {
   const data = await getUsers(searchParams)
-  return <UsersClient {...data} />
+  return <UsersClient {...data} searchParams={searchParams} />
 }

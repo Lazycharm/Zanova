@@ -58,7 +58,7 @@ async function getShopData(shopId: string) {
       .select('orderId')
       .in('productId', productIds)
 
-    const orderIds = [...new Set((orderItems || []).map((item: any) => item.orderId))]
+    const orderIds = Array.from(new Set((orderItems || []).map((item: any) => item.orderId)))
 
     if (orderIds.length > 0) {
       const { data: orders } = await supabaseAdmin
@@ -97,7 +97,7 @@ async function getShopData(shopId: string) {
       .select('userId')
       .in('productId', productIds)
 
-    const uniqueUserIds = [...new Set((favorites || []).map((f: any) => f.userId))]
+    const uniqueUserIds = Array.from(new Set((favorites || []).map((f: any) => f.userId)))
     followersCount = uniqueUserIds.length
   }
 
