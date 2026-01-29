@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
-import { db } from '@/lib/db'
+import { supabaseAdmin } from '@/lib/supabase'
 import { Header } from '@/components/layout/header'
 import { StoreSidebar } from '@/components/layout/store-sidebar'
 import { BottomNav } from '@/components/layout/bottom-nav'
@@ -19,15 +19,18 @@ async function checkMaintenance() {
     return maintenanceCache.value
   }
   
-  // Skip DB check if DATABASE_URL is not available (build time)
-  if (!process.env.DATABASE_URL) {
+  // Skip DB check if Supabase env vars are not available (build time)
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
     return false
   }
   
   try {
-    const setting = await db.setting.findUnique({
-      where: { key: 'maintenance_mode' },
-    })
+    const { data: setting } = await supabaseAdmin
+      .from('settings')
+      .select('value')
+      .eq('key', 'maintenance_mode')
+      .single()
+
     const isMaintenanceMode = setting?.value === 'true'
     
     // Update cache
@@ -40,28 +43,21 @@ async function checkMaintenance() {
 }
 
 async function getCategories() {
-  // Skip DB check if DATABASE_URL is not available (build time)
-  if (!process.env.DATABASE_URL) {
+  // Skip DB check if Supabase env vars are not available (build time)
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
     return []
   }
   
   try {
-    const categories = await db.category.findMany({
-      where: {
-        isActive: true,
-        parentId: null,
-      },
-      orderBy: { sortOrder: 'asc' },
-      take: 15,
-      select: {
-        id: true,
-        name: true,
-        slug: true,
-        icon: true,
-        image: true,
-      },
-    })
-    return categories
+    const { data: categories } = await supabaseAdmin
+      .from('categories')
+      .select('id, name, slug, icon, image')
+      .eq('isActive', true)
+      .is('parentId', null)
+      .order('sortOrder', { ascending: true })
+      .limit(15)
+
+    return categories || []
   } catch {
     return []
   }
@@ -99,8 +95,8 @@ export default async function StoreLayout({
       </div>
     )
   } catch (error) {
-    console.error('[STORE LAYOUT] Error:', error)
-    // Return basic layout without database-dependent features
+    console.error('Layout error:', error)
+    // Return basic layout without categories on error
     return (
       <div className="h-screen bg-gray-50/30 flex flex-col overflow-hidden">
         <AuthSync />
@@ -118,3 +114,5 @@ export default async function StoreLayout({
     )
   }
 }
+
+export const dynamic = 'force-dynamic'

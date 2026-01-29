@@ -1,12 +1,12 @@
-import { db } from '@/lib/db'
+import { supabaseAdmin } from '@/lib/supabase'
 import { HomePageClient } from './home-client'
 
 // Avoid prerender-time DB access on deploy/build environments.
 export const dynamic = 'force-dynamic'
 
 async function getHomeData() {
-  // Check if database is available
-  if (!process.env.DATABASE_URL) {
+  // Check if Supabase is available
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
     return {
       featuredProducts: [],
       newArrivals: [],
@@ -16,32 +16,64 @@ async function getHomeData() {
   }
 
   try {
-    const [featuredProducts, newArrivals, categories, heroSlides] = await Promise.all([
-      db.product.findMany({
-        where: { isFeatured: true, status: 'PUBLISHED' },
-        take: 4,
-        include: { images: { where: { isPrimary: true }, take: 1 } },
-        orderBy: { createdAt: 'desc' },
-      }),
-      db.product.findMany({
-        where: { status: 'PUBLISHED' },
-        take: 4,
-        include: { images: { where: { isPrimary: true }, take: 1 } },
-        orderBy: { createdAt: 'desc' },
-      }),
-      db.category.findMany({
-        where: { isActive: true, showOnHome: true, parentId: null },
-        take: 12,
-        orderBy: { sortOrder: 'asc' },
-      }),
-      db.heroSlide.findMany({
-        where: { isActive: true },
-        orderBy: { sortOrder: 'asc' },
-        take: 5,
-      }),
+    const [featuredProductsResult, newArrivalsResult, categoriesResult, heroSlidesResult] = await Promise.all([
+      supabaseAdmin
+        .from('products')
+        .select(`
+          *,
+          images:product_images!inner (
+            url
+          )
+        `)
+        .eq('isFeatured', true)
+        .eq('status', 'PUBLISHED')
+        .eq('images.isPrimary', true)
+        .order('createdAt', { ascending: false })
+        .limit(4),
+      supabaseAdmin
+        .from('products')
+        .select(`
+          *,
+          images:product_images!inner (
+            url
+          )
+        `)
+        .eq('status', 'PUBLISHED')
+        .eq('images.isPrimary', true)
+        .order('createdAt', { ascending: false })
+        .limit(4),
+      supabaseAdmin
+        .from('categories')
+        .select('*')
+        .eq('isActive', true)
+        .eq('showOnHome', true)
+        .is('parentId', null)
+        .order('sortOrder', { ascending: true })
+        .limit(12),
+      supabaseAdmin
+        .from('hero_slides')
+        .select('*')
+        .eq('isActive', true)
+        .order('sortOrder', { ascending: true })
+        .limit(5),
     ])
 
-    return { featuredProducts, newArrivals, categories, heroSlides }
+    const featuredProducts = (featuredProductsResult.data || []).map((p: any) => ({
+      ...p,
+      images: p.images || [],
+    }))
+
+    const newArrivals = (newArrivalsResult.data || []).map((p: any) => ({
+      ...p,
+      images: p.images || [],
+    }))
+
+    return {
+      featuredProducts,
+      newArrivals,
+      categories: categoriesResult.data || [],
+      heroSlides: heroSlidesResult.data || [],
+    }
   } catch (error) {
     console.error('Error fetching home data:', error)
     return {
@@ -78,119 +110,26 @@ export default async function HomePage() {
       price: 120,
       comparePrice: 160,
       rating: 4.8,
-      reviews: 1200,
-      image: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400&q=80',
-      slug: 'nike-air-zoom-pegasus-39',
+      reviews: 124,
+      image: '/placeholder-product.jpg',
     },
     {
       id: '2',
-      name: 'Essential Cotton Crew Neck T-Shirt Black',
-      price: 25,
-      comparePrice: 30,
-      rating: 4.5,
-      reviews: 850,
-      image: 'https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?w=400&q=80',
-      slug: 'essential-cotton-tshirt-black',
-    },
-    {
-      id: '3',
-      name: 'Urban Explorer Waterproof Backpack',
-      price: 89,
-      comparePrice: null,
+      name: 'Adidas Ultraboost 22 Running Shoe',
+      price: 180,
+      comparePrice: 220,
       rating: 4.9,
-      reviews: 230,
-      image: 'https://images.unsplash.com/photo-1591561954557-26941169b49e?w=400&q=80',
-      slug: 'urban-explorer-backpack',
-    },
-    {
-      id: '4',
-      name: 'Classic Aviator Sunglasses Gold Frame',
-      price: 145,
-      comparePrice: 160,
-      rating: 4.7,
-      reviews: 500,
-      image: 'https://images.unsplash.com/photo-1624378439575-d8705ad7ae80?w=400&q=80',
-      slug: 'classic-aviator-sunglasses-gold',
+      reviews: 89,
+      image: '/placeholder-product.jpg',
     },
   ]
-
-  const displayCategories = categories.length > 0 
-    ? categories.map((c, i) => ({
-        id: c.id,
-        name: c.name,
-        slug: c.slug,
-        icon: c.icon || defaultCategories[i]?.icon || 'solar:box-bold',
-        image: c.image, // Add uploaded image
-        color: defaultCategories[i]?.color || '#F5F5F5',
-        iconColor: defaultCategories[i]?.iconColor || '#808089',
-      }))
-    : defaultCategories
-
-  const displayFeatured = featuredProducts.length > 0
-    ? featuredProducts.map(p => ({
-        id: p.id,
-        name: p.name,
-        price: Number(p.price),
-        comparePrice: p.comparePrice ? Number(p.comparePrice) : null,
-        rating: Number(p.rating),
-        reviews: p.totalReviews,
-        image: p.images[0]?.url || defaultProducts[0].image,
-        slug: p.slug,
-      }))
-    : defaultProducts
-
-  const displayNewArrivals = newArrivals.length > 0
-    ? newArrivals.map(p => ({
-        id: p.id,
-        name: p.name,
-        price: Number(p.price),
-        comparePrice: p.comparePrice ? Number(p.comparePrice) : null,
-        rating: Number(p.rating),
-        reviews: p.totalReviews,
-        image: p.images[0]?.url || defaultProducts[0].image,
-        slug: p.slug,
-      }))
-    : defaultProducts
-
-  // Default hero slides if none exist
-  const defaultHeroSlides = [
-    {
-      id: '1',
-      title: 'Welcome to ZALORA',
-      subtitle: 'Fall Sale',
-      image: 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=1200&q=80',
-      mobileImage: 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=800&q=80',
-      ctaText: 'Shop Now',
-      ctaLink: '/products',
-    },
-    {
-      id: '2',
-      title: 'New Arrivals',
-      subtitle: 'Latest Collection',
-      image: 'https://images.unsplash.com/photo-1483985988355-763728e1935b?w=1200&q=80',
-      mobileImage: 'https://images.unsplash.com/photo-1483985988355-763728e1935b?w=800&q=80',
-      ctaText: 'Discover',
-      ctaLink: '/products?sort=newest',
-    },
-    {
-      id: '3',
-      title: 'Pay with Crypto',
-      subtitle: 'BTC, ETH, USDT',
-      image: 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=1200&q=80',
-      mobileImage: 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=800&q=80',
-      ctaText: 'Learn More',
-      ctaLink: '/about',
-    },
-  ]
-
-  const displayHeroSlides = heroSlides.length > 0 ? heroSlides : defaultHeroSlides
 
   return (
     <HomePageClient
-      categories={displayCategories}
-      featuredProducts={displayFeatured}
-      newArrivals={displayNewArrivals}
-      heroSlides={displayHeroSlides}
+      featuredProducts={featuredProducts.length > 0 ? featuredProducts : defaultProducts}
+      newArrivals={newArrivals.length > 0 ? newArrivals : defaultProducts}
+      categories={categories.length > 0 ? categories : defaultCategories}
+      heroSlides={heroSlides}
     />
   )
 }
