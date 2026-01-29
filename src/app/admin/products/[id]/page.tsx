@@ -1,4 +1,4 @@
-import { db } from '@/lib/db'
+import { supabaseAdmin } from '@/lib/supabase'
 import { notFound } from 'next/navigation'
 import { ProductFormClient } from '../product-form-client'
 
@@ -9,30 +9,46 @@ async function getProduct(id: string) {
     return null
   }
 
-  const product = await db.product.findUnique({
-    where: { id },
-    include: {
-      images: {
-        orderBy: { sortOrder: 'asc' },
-      },
-    },
-  })
+  const { data: product, error } = await supabaseAdmin
+    .from('products')
+    .select(`
+      *,
+      images:product_images (*)
+    `)
+    .eq('id', id)
+    .single()
 
-  return product
+  if (error || !product) {
+    return null
+  }
+
+  // Sort images by sortOrder
+  const sortedImages = (product.images || []).sort((a: any, b: any) => a.sortOrder - b.sortOrder)
+
+  return {
+    ...product,
+    images: sortedImages,
+  }
 }
 
 async function getFormData() {
-  const categories = await db.category.findMany({
-    where: { isActive: true },
-    orderBy: { name: 'asc' },
-  })
+  const [categoriesResult, shopsResult] = await Promise.all([
+    supabaseAdmin
+      .from('categories')
+      .select('*')
+      .eq('isActive', true)
+      .order('name', { ascending: true }),
+    supabaseAdmin
+      .from('shops')
+      .select('*')
+      .eq('status', 'ACTIVE')
+      .order('name', { ascending: true }),
+  ])
 
-  const shops = await db.shop.findMany({
-    where: { status: 'ACTIVE' },
-    orderBy: { name: 'asc' },
-  })
-
-  return { categories, shops }
+  return {
+    categories: categoriesResult.data || [],
+    shops: shopsResult.data || [],
+  }
 }
 
 export default async function EditProductPage({
@@ -51,12 +67,16 @@ export default async function EditProductPage({
 
   return (
     <ProductFormClient
-      product={product ? {
-        ...product,
-        price: Number(product.price),
-        comparePrice: product.comparePrice ? Number(product.comparePrice) : null,
-        rating: Number(product.rating),
-      } : null}
+      product={
+        product
+          ? {
+              ...product,
+              price: Number(product.price),
+              comparePrice: product.comparePrice ? Number(product.comparePrice) : null,
+              rating: Number(product.rating || 0),
+            }
+          : null
+      }
       categories={categories}
       shops={shops}
     />
