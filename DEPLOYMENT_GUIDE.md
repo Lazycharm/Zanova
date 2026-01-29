@@ -184,14 +184,25 @@ For issues or questions:
 
 - **Frontend**: Next.js 14+ (React)
 - **Backend**: Next.js API Routes
-- **Database**: Supabase (PostgreSQL)
+- **Database**: Supabase (PostgreSQL) - Direct connection via Supabase JS client
 - **Authentication**: JWT tokens stored in HTTP-only cookies
 - **File Storage**: Local filesystem (consider cloud storage for production)
 
-## Migration from Prisma
+## Important Notes
 
-This project has been migrated from Prisma ORM to Supabase JS client:
-- All database queries use `@supabase/supabase-js`
-- No Prisma schema or migrations needed
-- Direct SQL queries through Supabase client
-- Better compatibility with serverless environments
+### No DATABASE_URL Required
+
+This project uses Supabase JS client directly - **you do NOT need `DATABASE_URL`** environment variable. Only Supabase credentials are required:
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY`
+
+### Migration Complete
+
+This project has been fully migrated from Prisma ORM to Supabase JS client:
+- ✅ All database queries use `@supabase/supabase-js`
+- ✅ No Prisma schema or migrations needed
+- ✅ Direct SQL queries through Supabase client
+- ✅ Better compatibility with serverless environments
+- ✅ No build-time database connections required
+- ✅ All API routes and server components migrated
