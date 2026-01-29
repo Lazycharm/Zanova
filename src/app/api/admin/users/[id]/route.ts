@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
-import { db } from '@/lib/db'
-import { UserRole, UserStatus } from '@prisma/client'
+import { supabaseAdmin } from '@/lib/supabase'
+import { UserRole, UserStatus } from '@/lib/auth'
 
 export async function GET(
   request: Request,
@@ -18,38 +18,57 @@ export async function GET(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
-    const user = await db.user.findUnique({
-      where: { id: params.id },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        avatar: true,
-        phone: true,
-        role: true,
-        status: true,
-        balance: true,
-        canSell: true,
-        lastLoginAt: true,
-        lastLoginIp: true,
-        createdAt: true,
-        updatedAt: true,
-        shop: true,
-        _count: {
-          select: {
-            orders: true,
-            reviews: true,
-            supportTickets: true,
-          },
-        },
-      },
-    })
+    // Get user with shop
+    const { data: user, error: userError } = await supabaseAdmin
+      .from('users')
+      .select(`
+        id,
+        email,
+        name,
+        avatar,
+        phone,
+        role,
+        status,
+        balance,
+        canSell,
+        lastLoginAt,
+        lastLoginIp,
+        createdAt,
+        updatedAt,
+        shops (
+          id,
+          name,
+          slug,
+          status
+        )
+      `)
+      .eq('id', params.id)
+      .single()
 
-    if (!user) {
+    if (userError || !user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
-    return NextResponse.json({ user })
+    // Get counts
+    const [ordersCount, reviewsCount, ticketsCount] = await Promise.all([
+      supabaseAdmin.from('orders').select('*', { count: 'exact', head: true }).eq('userId', params.id),
+      supabaseAdmin.from('reviews').select('*', { count: 'exact', head: true }).eq('userId', params.id),
+      supabaseAdmin.from('support_tickets').select('*', { count: 'exact', head: true }).eq('userId', params.id),
+    ])
+
+    const shop = Array.isArray(user.shops) && user.shops.length > 0 ? user.shops[0] : null
+
+    return NextResponse.json({
+      user: {
+        ...user,
+        shop,
+        _count: {
+          orders: ordersCount.count || 0,
+          reviews: reviewsCount.count || 0,
+          supportTickets: ticketsCount.count || 0,
+        },
+      },
+    })
   } catch (error) {
     console.error('Get user error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
@@ -82,70 +101,33 @@ export async function PATCH(
       )
     }
 
-    // Prepare update data
-    const updateData: Record<string, unknown> = {}
-    
-    if (role && Object.values(UserRole).includes(role)) {
-      updateData.role = role
-    }
-    if (status && Object.values(UserStatus).includes(status)) {
-      updateData.status = status
-    }
-    if (typeof canSell === 'boolean') {
-      updateData.canSell = canSell
-    }
-    if (name) updateData.name = name
-    if (email) updateData.email = email
-    if (phone !== undefined) updateData.phone = phone
-    if (typeof balance === 'number') updateData.balance = balance
+    const updateData: any = {}
+    if (role !== undefined) updateData.role = role
+    if (status !== undefined) updateData.status = status
+    if (canSell !== undefined) updateData.canSell = canSell
+    if (name !== undefined) updateData.name = name
+    if (email !== undefined) updateData.email = email
+    if (phone !== undefined) updateData.phone = phone || null
+    if (balance !== undefined) updateData.balance = parseFloat(balance)
 
-    const user = await db.user.update({
-      where: { id: params.id },
-      data: updateData,
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        role: true,
-        status: true,
-        canSell: true,
-      },
-    })
+    const { data: user, error } = await supabaseAdmin
+      .from('users')
+      .update(updateData)
+      .eq('id', params.id)
+      .select()
+      .single()
 
-    return NextResponse.json({ success: true, user })
+    if (error) {
+      throw error
+    }
+
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+    }
+
+    return NextResponse.json({ user })
   } catch (error) {
     console.error('Update user error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
-  }
-}
-
-export async function DELETE(
-  request: Request,
-  { params }: { params: { id: string } }
-) {
-  try {
-    const session = await getSession()
-
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    if (session.role !== UserRole.ADMIN) {
-      return NextResponse.json({ error: 'Only admins can delete users' }, { status: 403 })
-    }
-
-    // Prevent self-deletion
-    if (params.id === session.userId) {
-      return NextResponse.json({ error: 'Cannot delete your own account' }, { status: 400 })
-    }
-
-    await db.user.delete({
-      where: { id: params.id },
-    })
-
-    return NextResponse.json({ success: true })
-  } catch (error) {
-    console.error('Delete user error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

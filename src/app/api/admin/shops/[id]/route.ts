@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/db'
+import { supabaseAdmin } from '@/lib/supabase'
 import { getSession } from '@/lib/auth'
-import { ShopStatus, ShopLevel } from '@prisma/client'
+import { ShopStatus, ShopLevel } from '@/lib/auth'
 
 export async function PATCH(
   req: NextRequest,
@@ -118,20 +118,26 @@ export async function PATCH(
       return NextResponse.json({ error: 'No valid fields to update' }, { status: 400 })
     }
 
-    const shop = await db.shop.update({
-      where: { id: params.id },
-      data: updateData,
-    })
+    const { data: shop, error } = await supabaseAdmin
+      .from('shops')
+      .update(updateData)
+      .eq('id', params.id)
+      .select()
+      .single()
+
+    if (error) {
+      if (error.code === '23505') { // Unique constraint violation
+        return NextResponse.json(
+          { error: 'Shop slug already exists' },
+          { status: 400 }
+        )
+      }
+      throw error
+    }
 
     return NextResponse.json({ shop })
   } catch (error: any) {
     console.error('Error updating shop:', error)
-    if (error.code === 'P2002') {
-      return NextResponse.json(
-        { error: 'Shop slug already exists' },
-        { status: 400 }
-      )
-    }
     return NextResponse.json({ error: 'Failed to update shop' }, { status: 500 })
   }
 }
@@ -151,49 +157,60 @@ export async function GET(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
-    const shop = await db.shop.findUnique({
-      where: { id: params.id },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
-        products: {
-          take: 10,
-          orderBy: { createdAt: 'desc' },
-          include: {
-            images: {
-              where: { isPrimary: true },
-              take: 1,
-            },
-          },
-        },
-        _count: {
-          select: {
-            products: true,
-            orders: true,
-          },
-        },
-      },
-    })
+    // Get shop with user
+    const { data: shop, error: shopError } = await supabaseAdmin
+      .from('shops')
+      .select(`
+        *,
+        user:users!shops_userId_fkey (
+          id,
+          name,
+          email
+        )
+      `)
+      .eq('id', params.id)
+      .single()
 
-    if (!shop) {
+    if (shopError || !shop) {
       return NextResponse.json({ error: 'Shop not found' }, { status: 404 })
     }
+
+    // Get products
+    const { data: products } = await supabaseAdmin
+      .from('products')
+      .select(`
+        *,
+        images:product_images!inner (
+          url
+        )
+      `)
+      .eq('shopId', params.id)
+      .eq('images.isPrimary', true)
+      .order('createdAt', { ascending: false })
+      .limit(10)
+
+    // Get counts
+    const [productsCount, ordersCount] = await Promise.all([
+      supabaseAdmin.from('products').select('*', { count: 'exact', head: true }).eq('shopId', params.id),
+      supabaseAdmin.from('orders').select('*', { count: 'exact', head: true }).eq('shopId', params.id),
+    ])
+
+    const formattedProducts = (products || []).map((p: any) => ({
+      ...p,
+      price: Number(p.price),
+      image: p.images && p.images.length > 0 ? p.images[0].url : null,
+    }))
 
     return NextResponse.json({
       shop: {
         ...shop,
-        balance: Number(shop.balance),
-        rating: Number(shop.rating),
-        products: shop.products.map((p) => ({
-          ...p,
-          price: Number(p.price),
-          image: p.images[0]?.url || null,
-        })),
+        balance: Number(shop.balance || 0),
+        rating: Number(shop.rating || 0),
+        products: formattedProducts,
+        _count: {
+          products: productsCount.count || 0,
+          orders: ordersCount.count || 0,
+        },
       },
     })
   } catch (error) {

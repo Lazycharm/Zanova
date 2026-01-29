@@ -17,6 +17,19 @@ export enum UserStatus {
   SUSPENDED = 'SUSPENDED',
 }
 
+export enum ShopStatus {
+  PENDING = 'PENDING',
+  ACTIVE = 'ACTIVE',
+  SUSPENDED = 'SUSPENDED',
+  CLOSED = 'CLOSED',
+}
+
+export enum ShopLevel {
+  BASIC = 'BASIC',
+  PREMIUM = 'PREMIUM',
+  ENTERPRISE = 'ENTERPRISE',
+}
+
 const JWT_SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET || 'zalora-secret-key'
 )
