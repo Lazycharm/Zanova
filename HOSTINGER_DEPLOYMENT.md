@@ -37,6 +37,50 @@ NODE_ENV=production
    - Hostinger supports Node.js 18+
    - Make sure your Hostinger plan includes Node.js support
 
+## Supabase Database Setup (IMPORTANT!)
+
+Before deploying, set up a custom Prisma user in Supabase for better control and monitoring:
+
+### Step 1: Create Prisma User in Supabase
+
+1. Go to your Supabase Dashboard
+2. Open the **SQL Editor**
+3. Run this SQL to create a custom Prisma user:
+
+```sql
+-- Create custom user for Prisma
+CREATE USER "prisma" WITH PASSWORD 'your_secure_password_here' BYPASSRLS CREATEDB;
+
+-- Extend prisma's privileges to postgres (necessary to view changes in Dashboard)
+GRANT "prisma" TO "postgres";
+
+-- Grant necessary permissions over the public schema
+GRANT USAGE ON SCHEMA public TO prisma;
+GRANT CREATE ON SCHEMA public TO prisma;
+GRANT ALL ON ALL TABLES IN SCHEMA public TO prisma;
+GRANT ALL ON ALL ROUTINES IN SCHEMA public TO prisma;
+GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO prisma;
+
+-- Set default privileges for future tables
+ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT ALL ON TABLES TO prisma;
+ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT ALL ON ROUTINES TO prisma;
+ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT ALL ON SEQUENCES TO prisma;
+```
+
+**⚠️ Security:** Use a strong password generator for the Prisma user password!
+
+### Step 2: Get Your Connection String
+
+1. In Supabase Dashboard, go to **Settings** → **Database**
+2. Find **Connection string** → **Supavisor Session mode** (port 5432)
+3. The format should be:
+   ```
+   postgres://prisma.[PROJECT-REF]:[PRISMA-PASSWORD]@[DB-REGION].pooler.supabase.com:5432/postgres
+   ```
+4. Replace `[PRISMA-PASSWORD]` with the password you created in Step 1
+
+**Note:** For Hostinger (server-based deployment), use **Session mode (port 5432)**, NOT Transaction mode (port 6543).
+
 ## Deployment Steps
 
 ### 1. Prepare Your Repository
