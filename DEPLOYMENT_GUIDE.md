@@ -31,6 +31,39 @@ ADMIN_PASSWORD=your_secure_admin_password
 SEED_SECRET_KEY=your_random_seed_secret_key
 ```
 
+### Generating a Seed Key
+
+The `SEED_SECRET_KEY` is a security measure to prevent unauthorized database seeding. Generate a secure random key using one of these methods:
+
+**Option 1: Using Node.js (Recommended)**
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+```
+
+**Option 2: Using OpenSSL**
+```bash
+openssl rand -hex 32
+```
+
+**Option 3: Using PowerShell (Windows)**
+```powershell
+-join ((48..57) + (65..90) + (97..122) | Get-Random -Count 64 | ForEach-Object {[char]$_})
+```
+
+**Option 4: Online Generator**
+- Visit: https://randomkeygen.com/
+- Use a "CodeIgniter Encryption Keys" (256-bit) or generate a 64-character random string
+
+**Example Output:**
+```
+a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6a7b8c9d0e1f2
+```
+
+**Important:** 
+- Use a long, random string (at least 32 characters, 64+ recommended)
+- Keep it secret - don't commit it to Git
+- Use the same key in your `.env.local` and when calling the seed endpoint
+
 ### Getting Supabase Credentials
 
 1. Go to [Supabase Dashboard](https://app.supabase.com)
@@ -53,18 +86,56 @@ The database schema should already be set up in your Supabase project. If you ne
 
 ### 2. Seed Initial Data
 
-After deployment, seed the database with initial admin user:
+After deployment, seed the database with initial admin user and default data:
 
+**Step 1:** Make sure `SEED_SECRET_KEY` is set in your environment variables (same value you generated above)
+
+**Step 2:** Call the seed endpoint using one of these methods:
+
+**Using curl:**
 ```bash
-# Using the seed API endpoint
-curl -X POST "https://your-domain.com/api/admin/seed?key=your_seed_secret_key"
+curl -X POST "https://your-domain.com/api/admin/seed?key=YOUR_SEED_SECRET_KEY"
 ```
 
-Or visit: `https://your-domain.com/api/admin/seed?key=your_seed_secret_key`
+**Using browser:**
+Visit: `https://your-domain.com/api/admin/seed?key=YOUR_SEED_SECRET_KEY`
 
-**Default Admin Credentials:**
-- Email: `admin@zanova.com` (or your `ADMIN_EMAIL`)
-- Password: Your `ADMIN_PASSWORD`
+**Using fetch (browser console):**
+```javascript
+fetch('/api/admin/seed?key=YOUR_SEED_SECRET_KEY', { method: 'POST' })
+  .then(r => r.json())
+  .then(console.log)
+```
+
+**Expected Response:**
+```json
+{
+  "success": true,
+  "message": "Database seeded successfully",
+  "adminEmail": "admin@zanova.com"
+}
+```
+
+**If already seeded:**
+```json
+{
+  "success": true,
+  "message": "Database already seeded. Admin user exists.",
+  "adminEmail": "admin@zanova.com"
+}
+```
+
+**Default Admin Credentials (after seeding):**
+- Email: `admin@zanova.com` (or your `ADMIN_EMAIL` from env)
+- Password: Your `ADMIN_PASSWORD` from env
+
+**Note:** The seed endpoint will:
+- Create the admin user
+- Create default categories
+- Create default settings
+- Set up initial configuration
+
+You only need to run this once after setting up a new Supabase project.
 
 ## Deployment Options
 
