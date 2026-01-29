@@ -1,4 +1,4 @@
-import { db } from '@/lib/db'
+import { supabaseAdmin } from '@/lib/supabase'
 import { ProductsClient } from './products-client'
 
 export const dynamic = 'force-dynamic'
@@ -15,44 +15,58 @@ async function getProducts(searchParams: SearchParams) {
   const limit = 20
   const skip = (page - 1) * limit
 
-  const where: Record<string, unknown> = {}
+  // Build query
+  let productsQuery = supabaseAdmin
+    .from('products')
+    .select(`
+      *,
+      category:categories!products_categoryId_fkey (
+        name
+      ),
+      shop:shops!products_shopId_fkey (
+        name
+      ),
+      images:product_images!inner (
+        url
+      )
+    `, { count: 'exact' })
 
+  // Apply filters
   if (searchParams.search) {
-    where.OR = [
-      { name: { contains: searchParams.search, mode: 'insensitive' } },
-      { sku: { contains: searchParams.search, mode: 'insensitive' } },
-    ]
+    productsQuery = productsQuery.or(`name.ilike.%${searchParams.search}%,sku.ilike.%${searchParams.search}%`)
   }
 
   if (searchParams.category) {
-    where.categoryId = searchParams.category
+    productsQuery = productsQuery.eq('categoryId', searchParams.category)
   }
 
   if (searchParams.status) {
-    where.status = searchParams.status
+    productsQuery = productsQuery.eq('status', searchParams.status)
   }
 
-  const [products, total, categories] = await Promise.all([
-    db.product.findMany({
-      where,
-      skip,
-      take: limit,
-      orderBy: { createdAt: 'desc' },
-      include: {
-        category: { select: { name: true } },
-        shop: { select: { name: true } },
-        images: { where: { isPrimary: true }, take: 1 },
-      },
-    }),
-    db.product.count({ where }),
-    db.category.findMany({
-      where: { isActive: true },
-      orderBy: { name: 'asc' },
-    }),
+  // Apply pagination and ordering
+  productsQuery = productsQuery
+    .eq('images.isPrimary', true)
+    .order('createdAt', { ascending: false })
+    .range(skip, skip + limit - 1)
+
+  const [productsResult, categoriesResult] = await Promise.all([
+    productsQuery,
+    supabaseAdmin
+      .from('categories')
+      .select('id, name')
+      .eq('isActive', true)
+      .order('name', { ascending: true }),
   ])
 
+  if (productsResult.error) {
+    throw productsResult.error
+  }
+
+  const total = productsResult.count || 0
+
   return {
-    products: products.map((p) => ({
+    products: (productsResult.data || []).map((p: any) => ({
       id: p.id,
       name: p.name,
       sku: p.sku,
@@ -61,14 +75,14 @@ async function getProducts(searchParams: SearchParams) {
       stock: p.stock,
       status: p.status,
       isFeatured: p.isFeatured,
-      categoryName: p.category.name,
+      categoryName: p.category?.name || 'Uncategorized',
       shopName: p.shop?.name || null,
-      image: p.images[0]?.url || null,
+      image: p.images && p.images.length > 0 ? p.images[0].url : null,
     })),
     total,
     pages: Math.ceil(total / limit),
     page,
-    categories: categories.map(c => ({ id: c.id, name: c.name })),
+    categories: (categoriesResult.data || []).map((c: any) => ({ id: c.id, name: c.name })),
   }
 }
 
@@ -78,5 +92,5 @@ export default async function ProductsPage({
   searchParams: SearchParams
 }) {
   const data = await getProducts(searchParams)
-  return <ProductsClient {...data} searchParams={searchParams} />
+  return <ProductsClient {...data} />
 }

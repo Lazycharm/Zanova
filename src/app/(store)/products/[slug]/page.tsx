@@ -1,4 +1,4 @@
-import { db } from '@/lib/db'
+import { supabaseAdmin } from '@/lib/supabase'
 import { notFound } from 'next/navigation'
 import { ProductDetailClient } from './product-detail-client'
 
@@ -6,59 +6,61 @@ import { ProductDetailClient } from './product-detail-client'
 export const revalidate = 300
 
 async function getProduct(slug: string) {
-  const product = await db.product.findUnique({
-    where: { slug },
-    include: {
-      images: {
-        orderBy: { sortOrder: 'asc' },
-      },
-      category: true,
-      shop: {
-        select: {
-          id: true,
-          name: true,
-          slug: true,
-        },
-      },
-    },
-  })
+  const { data: product, error } = await supabaseAdmin
+    .from('products')
+    .select(`
+      *,
+      images:product_images (*),
+      category:categories (*),
+      shop:shops!products_shopId_fkey (
+        id,
+        name,
+        slug
+      )
+    `)
+    .eq('slug', slug)
+    .eq('status', 'PUBLISHED')
+    .single()
 
-  if (!product || product.status !== 'PUBLISHED') {
+  if (error || !product) {
     return null
   }
 
+  // Sort images by sortOrder
+  const sortedImages = (product.images || []).sort((a: any, b: any) => a.sortOrder - b.sortOrder)
+
   // Get related products from same category
-  const relatedProducts = await db.product.findMany({
-    where: {
-      categoryId: product.categoryId,
-      status: 'PUBLISHED',
-      NOT: { id: product.id },
-    },
-    include: {
-      images: {
-        where: { isPrimary: true },
-        take: 1,
-      },
-    },
-    take: 4,
-  })
+  const { data: relatedProducts } = await supabaseAdmin
+    .from('products')
+    .select(`
+      *,
+      images:product_images!inner (
+        url
+      )
+    `)
+    .eq('categoryId', product.categoryId)
+    .eq('status', 'PUBLISHED')
+    .neq('id', product.id)
+    .eq('images.isPrimary', true)
+    .limit(4)
 
   return {
     product: {
       ...product,
+      images: sortedImages,
       price: Number(product.price),
       comparePrice: product.comparePrice ? Number(product.comparePrice) : null,
-      rating: Number(product.rating),
+      rating: Number(product.rating || 0),
     },
-    relatedProducts: relatedProducts.map((p) => ({
+    relatedProducts: (relatedProducts || []).map((p: any) => ({
       id: p.id,
       name: p.name,
       slug: p.slug,
       price: Number(p.price),
       comparePrice: p.comparePrice ? Number(p.comparePrice) : null,
-      rating: Number(p.rating),
-      reviews: p.totalReviews,
-      image: p.images[0]?.url || '/placeholder-product.jpg',
+      rating: Number(p.rating || 0),
+      reviews: p.totalReviews || 0,
+      image: p.images && p.images.length > 0 ? p.images[0].url : '/placeholder-product.jpg',
       isFeatured: p.isFeatured,
     })),
   }
