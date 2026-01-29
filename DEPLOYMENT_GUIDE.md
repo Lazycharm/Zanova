@@ -200,26 +200,176 @@ fetch('/api/admin/seed?key=YOUR_SEED_SECRET_KEY')
    - Netlify will automatically deploy on push to main branch
    - Or click "Deploy site" manually
 
-### Option 2: Hostinger (Node.js Web App)
+### Option 2: Hostinger (Node.js Web App) - Complete Step-by-Step Guide
 
-1. **Upload Files**
-   - Upload your project files via FTP or File Manager
-   - Or use Git deployment if available
+**⚠️ IMPORTANT: Follow these steps IN ORDER. Do NOT skip steps!**
 
-2. **Node.js Configuration**
-   - Go to Hostinger Control Panel → Node.js
-   - Create new Node.js app
-   - Set Node version to `18` or `20`
-   - Set startup file to: `server.js` (if using custom server) or use Next.js default
+#### STEP 1: Setup Supabase Database (Do This FIRST)
 
-3. **Environment Variables**
-   - Add all environment variables in Hostinger Control Panel
-   - Or create `.env` file in project root
+1. **Create Supabase Project**
+   - Go to [Supabase Dashboard](https://app.supabase.com)
+   - Click "New Project"
+   - Fill in project details and wait for it to be ready
 
-4. **Build & Start**
-   - Run: `npm install`
-   - Run: `npm run build`
-   - Start the app
+2. **Get Supabase Credentials**
+   - Go to **Settings** → **API**
+   - Copy these 3 values (you'll need them in Step 3):
+     - `NEXT_PUBLIC_SUPABASE_URL` (Project URL)
+     - `NEXT_PUBLIC_SUPABASE_ANON_KEY` (anon public key)
+     - `SUPABASE_SERVICE_ROLE_KEY` (service_role key - keep secret!)
+
+3. **Create Database Schema**
+   - In Supabase Dashboard → **SQL Editor**
+   - Open `supabase-schema.sql` from this repository
+   - Copy ALL contents and paste into SQL Editor
+   - Click **Run** (or Ctrl+Enter)
+   - ✅ You should see "Database schema created successfully!"
+
+**✅ Database is now ready. DO NOT seed yet - wait until after deployment!**
+
+---
+
+#### STEP 2: Prepare Your Code
+
+1. **Generate Keys** (on your local computer)
+   ```bash
+   # Generate JWT_SECRET (64 characters)
+   node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+   
+   # Generate SEED_SECRET_KEY (64 characters)
+   node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+   ```
+   - Save both keys somewhere safe (you'll need them)
+
+2. **Commit & Push to Git**
+   ```bash
+   git add .
+   git commit -m "Ready for deployment"
+   git push
+   ```
+
+---
+
+#### STEP 3: Deploy to Hostinger
+
+1. **Access Hostinger Control Panel**
+   - Log in to Hostinger
+   - Go to **hPanel** → **Node.js** section
+
+2. **Create Node.js App**
+   - Click **Create Node.js App** or **Add Application**
+   - Fill in:
+     - **App Name**: `zanova` (or your choice)
+     - **Node.js Version**: `18` or `20` (recommended: `20`)
+     - **App Mode**: `Production`
+     - **Startup File**: Leave default or set to `server.js` if you have one
+
+3. **Upload Your Code**
+   
+   **Option A: Git Deployment (Recommended)**
+   - In Node.js app settings, find **Git** or **Deployment** section
+   - Connect your Git repository
+   - Set branch to `main` or `master`
+   - Click **Deploy** or **Pull from Git**
+
+   **Option B: Manual Upload (FTP/File Manager)**
+   - Connect via FTP or use File Manager
+   - Upload ALL project files to the app directory
+   - Make sure `.gitignore` files are uploaded (but NOT `.env` files)
+
+4. **Set Environment Variables**
+   
+   In Hostinger Node.js app settings, find **Environment Variables** section and add ALL of these:
+   
+   ```env
+   NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+   SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+   NEXT_PUBLIC_APP_URL=https://your-domain.com
+   JWT_SECRET=your_generated_jwt_secret_64_chars
+   ADMIN_EMAIL=admin@zanova.com
+   ADMIN_PASSWORD=your_secure_password_here
+   SEED_SECRET_KEY=your_generated_seed_secret_64_chars
+   NODE_ENV=production
+   ```
+   
+   **Important:**
+   - Replace all `your_*` values with actual values
+   - Use the keys you generated in Step 2
+   - Use the Supabase credentials from Step 1
+   - Set `NEXT_PUBLIC_APP_URL` to your actual domain
+
+5. **Install Dependencies & Build**
+   
+   In Hostinger Node.js app, find **Terminal** or **SSH** section, then run:
+   ```bash
+   npm install
+   npm run build
+   ```
+   
+   Or if Hostinger has auto-build enabled, it will do this automatically.
+
+6. **Start the Application**
+   - In Node.js app settings, click **Start** or **Restart**
+   - Wait for the app to start (check status)
+   - Your app should now be running!
+
+**✅ Deployment complete! Your app should be accessible at your domain.**
+
+---
+
+#### STEP 4: Seed the Database (Do This AFTER Deployment)
+
+**⚠️ CRITICAL: Only seed AFTER your app is deployed and running!**
+
+1. **Verify App is Running**
+   - Visit your domain: `https://your-domain.com`
+   - The homepage should load (even if empty, that's OK)
+
+2. **Call the Seed Endpoint**
+   
+   Open your browser and visit:
+   ```
+   https://your-domain.com/api/admin/seed?key=YOUR_SEED_SECRET_KEY
+   ```
+   
+   Replace `YOUR_SEED_SECRET_KEY` with the actual `SEED_SECRET_KEY` you set in environment variables.
+
+3. **Check the Response**
+   
+   You should see JSON like this:
+   ```json
+   {
+     "success": true,
+     "message": "Database seeded successfully!",
+     "adminEmail": "admin@zanova.com",
+     "usersCreated": 3,
+     "categoriesCreated": 12,
+     "settingsCreated": 16,
+     "heroSlidesCreated": 2
+   }
+   ```
+
+4. **Test Admin Login**
+   - Go to: `https://your-domain.com/auth/login`
+   - Login with:
+     - Email: Your `ADMIN_EMAIL` (from env vars)
+     - Password: Your `ADMIN_PASSWORD` (from env vars)
+   - ✅ You should be logged in and redirected to admin dashboard
+
+**✅ Seeding complete! Your app is now fully set up.**
+
+---
+
+#### Quick Checklist Summary
+
+- [ ] ✅ Step 1: Supabase project created & schema run
+- [ ] ✅ Step 2: Keys generated & code pushed to Git
+- [ ] ✅ Step 3: App deployed to Hostinger with env vars set
+- [ ] ✅ Step 4: Database seeded via seed endpoint
+- [ ] ✅ Step 5: Admin login tested successfully
+
+**That's it! Your app is live and ready to use.**
 
 ### Option 3: Vercel (Recommended for Next.js)
 
