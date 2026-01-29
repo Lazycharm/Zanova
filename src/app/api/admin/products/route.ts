@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/db'
+import { supabaseAdmin } from '@/lib/supabase'
 import { getSession } from '@/lib/auth'
 
 export async function POST(req: NextRequest) {
@@ -34,14 +34,20 @@ export async function POST(req: NextRequest) {
     }
 
     // Check if slug already exists
-    const existing = await db.product.findUnique({ where: { slug } })
+    const { data: existing } = await supabaseAdmin
+      .from('products')
+      .select('id')
+      .eq('slug', slug)
+      .single()
+
     if (existing) {
       return NextResponse.json({ error: 'Slug already exists' }, { status: 400 })
     }
 
     // Create product
-    const product = await db.product.create({
-      data: {
+    const { data: product, error: productError } = await supabaseAdmin
+      .from('products')
+      .insert({
         name,
         slug,
         description: description || null,
@@ -53,24 +59,27 @@ export async function POST(req: NextRequest) {
         shopId: shopId || null,
         status: status || 'DRAFT',
         isFeatured: isFeatured || false,
-      },
-    })
+      })
+      .select()
+      .single()
+
+    if (productError || !product) {
+      throw productError || new Error('Failed to create product')
+    }
 
     // Create images
     if (images && Array.isArray(images) && images.length > 0) {
-      await Promise.all(
-        images.map((url: string, index: number) =>
-          db.productImage.create({
-            data: {
-              productId: product.id,
-              url,
-              alt: name,
-              isPrimary: index === 0,
-              sortOrder: index,
-            },
-          })
-        )
-      )
+      const imageInserts = images.map((url: string, index: number) => ({
+        productId: product.id,
+        url,
+        alt: name,
+        isPrimary: index === 0,
+        sortOrder: index,
+      }))
+
+      await supabaseAdmin
+        .from('product_images')
+        .insert(imageInserts)
     }
 
     return NextResponse.json({ product })

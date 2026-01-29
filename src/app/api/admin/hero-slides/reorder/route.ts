@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/db'
+import { supabaseAdmin } from '@/lib/supabase'
 import { getSession } from '@/lib/auth'
 
 export async function POST(req: NextRequest) {
@@ -26,10 +26,10 @@ export async function POST(req: NextRequest) {
     // Update each slide's sortOrder
     await Promise.all(
       slides.map((slide: { id: string; sortOrder: number }) =>
-        db.heroSlide.update({
-          where: { id: slide.id },
-          data: { sortOrder: slide.sortOrder },
-        })
+        supabaseAdmin
+          .from('hero_slides')
+          .update({ sortOrder: slide.sortOrder })
+          .eq('id', slide.id)
       )
     )
 

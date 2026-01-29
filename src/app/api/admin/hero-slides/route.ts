@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/db'
+import { supabaseAdmin } from '@/lib/supabase'
 import { getSession } from '@/lib/auth'
 
 export async function GET(req: NextRequest) {
@@ -10,9 +10,14 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const slides = await db.heroSlide.findMany({
-      orderBy: { sortOrder: 'asc' },
-    })
+    const { data: slides, error } = await supabaseAdmin
+      .from('hero_slides')
+      .select('*')
+      .order('sortOrder', { ascending: true })
+
+    if (error) {
+      throw error
+    }
 
     return NextResponse.json({ slides })
   } catch (error) {
@@ -53,8 +58,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Image is required' }, { status: 400 })
     }
 
-    const slide = await db.heroSlide.create({
-      data: {
+    const { data: slide, error } = await supabaseAdmin
+      .from('hero_slides')
+      .insert({
         title: title || null,
         subtitle: subtitle || null,
         image,
@@ -63,10 +69,15 @@ export async function POST(req: NextRequest) {
         ctaLink: ctaLink || null,
         isActive: isActive !== undefined ? isActive : true,
         sortOrder: sortOrder !== undefined ? sortOrder : 0,
-        startsAt: startsAt ? new Date(startsAt) : null,
-        endsAt: endsAt ? new Date(endsAt) : null,
-      },
-    })
+        startsAt: startsAt ? new Date(startsAt).toISOString() : null,
+        endsAt: endsAt ? new Date(endsAt).toISOString() : null,
+      })
+      .select()
+      .single()
+
+    if (error) {
+      throw error
+    }
 
     return NextResponse.json({ slide })
   } catch (error) {

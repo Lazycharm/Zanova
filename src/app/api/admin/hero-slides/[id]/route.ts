@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/db'
+import { supabaseAdmin } from '@/lib/supabase'
 import { getSession } from '@/lib/auth'
 
 export async function PUT(
@@ -33,21 +33,28 @@ export async function PUT(
       endsAt,
     } = body
 
-    const slide = await db.heroSlide.update({
-      where: { id: params.id },
-      data: {
-        title: title !== undefined ? title || null : undefined,
-        subtitle: subtitle !== undefined ? subtitle || null : undefined,
-        image: image || undefined,
-        mobileImage: mobileImage !== undefined ? mobileImage || null : undefined,
-        ctaText: ctaText !== undefined ? ctaText || null : undefined,
-        ctaLink: ctaLink !== undefined ? ctaLink || null : undefined,
-        isActive: isActive !== undefined ? isActive : undefined,
-        sortOrder: sortOrder !== undefined ? sortOrder : undefined,
-        startsAt: startsAt !== undefined ? (startsAt ? new Date(startsAt) : null) : undefined,
-        endsAt: endsAt !== undefined ? (endsAt ? new Date(endsAt) : null) : undefined,
-      },
-    })
+    const updateData: any = {}
+    if (title !== undefined) updateData.title = title || null
+    if (subtitle !== undefined) updateData.subtitle = subtitle || null
+    if (image !== undefined) updateData.image = image
+    if (mobileImage !== undefined) updateData.mobileImage = mobileImage || null
+    if (ctaText !== undefined) updateData.ctaText = ctaText || null
+    if (ctaLink !== undefined) updateData.ctaLink = ctaLink || null
+    if (isActive !== undefined) updateData.isActive = isActive
+    if (sortOrder !== undefined) updateData.sortOrder = sortOrder
+    if (startsAt !== undefined) updateData.startsAt = startsAt ? new Date(startsAt).toISOString() : null
+    if (endsAt !== undefined) updateData.endsAt = endsAt ? new Date(endsAt).toISOString() : null
+
+    const { data: slide, error } = await supabaseAdmin
+      .from('hero_slides')
+      .update(updateData)
+      .eq('id', params.id)
+      .select()
+      .single()
+
+    if (error) {
+      throw error
+    }
 
     return NextResponse.json({ slide })
   } catch (error) {
@@ -64,18 +71,23 @@ export async function DELETE(
     const auth = await getSession()
 
     if (!auth) {
-      console.error('[Hero Slides PUT] No auth session found')
+      console.error('[Hero Slides DELETE] No auth session found')
       return NextResponse.json({ error: 'Unauthorized: No session found' }, { status: 401 })
     }
 
     if (auth.role !== 'ADMIN' && auth.role !== 'MANAGER') {
-      console.error(`[Hero Slides PUT] Insufficient permissions. Role: ${auth.role}, User: ${auth.email}`)
+      console.error(`[Hero Slides DELETE] Insufficient permissions. Role: ${auth.role}, User: ${auth.email}`)
       return NextResponse.json({ error: 'Unauthorized: Insufficient permissions' }, { status: 401 })
     }
 
-    await db.heroSlide.delete({
-      where: { id: params.id },
-    })
+    const { error } = await supabaseAdmin
+      .from('hero_slides')
+      .delete()
+      .eq('id', params.id)
+
+    if (error) {
+      throw error
+    }
 
     return NextResponse.json({ success: true })
   } catch (error) {

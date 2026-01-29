@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/db'
+import { supabaseAdmin } from '@/lib/supabase'
 import { getSession } from '@/lib/auth'
 
 export async function PUT(
@@ -27,30 +27,38 @@ export async function PUT(
 
     // If slug is being updated, check if it's already taken
     if (slug) {
-      const existing = await db.category.findFirst({
-        where: {
-          slug,
-          NOT: { id: params.id },
-        },
-      })
+      const { data: existing } = await supabaseAdmin
+        .from('categories')
+        .select('id')
+        .eq('slug', slug)
+        .neq('id', params.id)
+        .single()
+
       if (existing) {
         return NextResponse.json({ error: 'Slug already exists' }, { status: 400 })
       }
     }
 
-    const category = await db.category.update({
-      where: { id: params.id },
-      data: {
-        name: name || undefined,
-        slug: slug || undefined,
-        description: description !== undefined ? description || null : undefined,
-        icon: icon !== undefined ? icon || null : undefined,
-        image: image !== undefined ? image || null : undefined,
-        isActive: isActive !== undefined ? isActive : undefined,
-        showOnHome: showOnHome !== undefined ? showOnHome : undefined,
-        parentId: parentId !== undefined ? parentId || null : undefined,
-      },
-    })
+    const updateData: any = {}
+    if (name !== undefined) updateData.name = name
+    if (slug !== undefined) updateData.slug = slug
+    if (description !== undefined) updateData.description = description || null
+    if (icon !== undefined) updateData.icon = icon || null
+    if (image !== undefined) updateData.image = image || null
+    if (isActive !== undefined) updateData.isActive = isActive
+    if (showOnHome !== undefined) updateData.showOnHome = showOnHome
+    if (parentId !== undefined) updateData.parentId = parentId || null
+
+    const { data: category, error } = await supabaseAdmin
+      .from('categories')
+      .update(updateData)
+      .eq('id', params.id)
+      .select()
+      .single()
+
+    if (error) {
+      throw error
+    }
 
     return NextResponse.json({ category })
   } catch (error) {
@@ -70,11 +78,13 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // CategoryId is required on Product (non-nullable). If products exist, block deletion.
-    const productsInCategory = await db.product.count({
-      where: { categoryId: params.id },
-    })
-    if (productsInCategory > 0) {
+    // Check if category has products
+    const { count } = await supabaseAdmin
+      .from('products')
+      .select('*', { count: 'exact', head: true })
+      .eq('categoryId', params.id)
+
+    if ((count || 0) > 0) {
       return NextResponse.json(
         {
           error:
@@ -85,9 +95,14 @@ export async function DELETE(
     }
 
     // Delete the category
-    await db.category.delete({
-      where: { id: params.id },
-    })
+    const { error } = await supabaseAdmin
+      .from('categories')
+      .delete()
+      .eq('id', params.id)
+
+    if (error) {
+      throw error
+    }
 
     return NextResponse.json({ success: true })
   } catch (error) {

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/db'
+import { supabaseAdmin } from '@/lib/supabase'
 import { getSession } from '@/lib/auth'
 
 export async function PUT(
@@ -31,57 +31,72 @@ export async function PUT(
 
     // If slug is being updated, check if it's already taken
     if (slug) {
-      const existing = await db.product.findFirst({
-        where: {
-          slug,
-          NOT: { id: params.id },
-        },
-      })
+      const { data: existing } = await supabaseAdmin
+        .from('products')
+        .select('id')
+        .eq('slug', slug)
+        .neq('id', params.id)
+        .single()
+
       if (existing) {
         return NextResponse.json({ error: 'Slug already exists' }, { status: 400 })
       }
     }
 
+    // Get current product name for image alt text
+    const { data: currentProduct } = await supabaseAdmin
+      .from('products')
+      .select('name')
+      .eq('id', params.id)
+      .single()
+
+    // Build update data object
+    const updateData: any = {}
+    if (name !== undefined) updateData.name = name
+    if (slug !== undefined) updateData.slug = slug
+    if (description !== undefined) updateData.description = description || null
+    if (price !== undefined) updateData.price = price
+    if (comparePrice !== undefined) updateData.comparePrice = comparePrice || null
+    if (stock !== undefined) updateData.stock = stock
+    if (sku !== undefined) updateData.sku = sku || null
+    if (categoryId !== undefined) updateData.categoryId = categoryId || null
+    if (shopId !== undefined) updateData.shopId = shopId || null
+    if (status !== undefined) updateData.status = status
+    if (isFeatured !== undefined) updateData.isFeatured = isFeatured
+
     // Update product
-    const product = await db.product.update({
-      where: { id: params.id },
-      data: {
-        name: name || undefined,
-        slug: slug || undefined,
-        description: description !== undefined ? description || null : undefined,
-        price: price !== undefined ? price : undefined,
-        comparePrice: comparePrice !== undefined ? comparePrice || null : undefined,
-        stock: stock !== undefined ? stock : undefined,
-        sku: sku !== undefined ? sku || null : undefined,
-        categoryId: categoryId !== undefined ? categoryId || null : undefined,
-        shopId: shopId !== undefined ? shopId || null : undefined,
-        status: status || undefined,
-        isFeatured: isFeatured !== undefined ? isFeatured : undefined,
-      },
-    })
+    const { data: product, error: updateError } = await supabaseAdmin
+      .from('products')
+      .update(updateData)
+      .eq('id', params.id)
+      .select()
+      .single()
+
+    if (updateError) {
+      throw updateError
+    }
 
     // Update images if provided
     if (images && Array.isArray(images)) {
       // Delete existing images
-      await db.productImage.deleteMany({
-        where: { productId: params.id },
-      })
+      await supabaseAdmin
+        .from('product_images')
+        .delete()
+        .eq('productId', params.id)
 
       // Create new images
       if (images.length > 0) {
-        await Promise.all(
-          images.map((url: string, index: number) =>
-            db.productImage.create({
-              data: {
-                productId: params.id,
-                url,
-                alt: name || product.name,
-                isPrimary: index === 0,
-                sortOrder: index,
-              },
-            })
-          )
-        )
+        const imageInserts = images.map((url: string, index: number) => ({
+          productId: params.id,
+          url,
+          alt: name || currentProduct?.name || 'Product image',
+          isPrimary: index === 0,
+          sortOrder: index,
+        }))
+
+        await supabaseAdmin
+          .from('product_images')
+          .insert(imageInserts)
       }
     }
 
@@ -104,14 +119,20 @@ export async function DELETE(
     }
 
     // Delete product images first
-    await db.productImage.deleteMany({
-      where: { productId: params.id },
-    })
+    await supabaseAdmin
+      .from('product_images')
+      .delete()
+      .eq('productId', params.id)
 
     // Delete the product
-    await db.product.delete({
-      where: { id: params.id },
-    })
+    const { error } = await supabaseAdmin
+      .from('products')
+      .delete()
+      .eq('id', params.id)
+
+    if (error) {
+      throw error
+    }
 
     return NextResponse.json({ success: true })
   } catch (error) {
