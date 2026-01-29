@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import { getCurrentUser } from '@/lib/auth'
-import { db } from '@/lib/db'
+import { supabaseAdmin } from '@/lib/supabase'
 import { SellerDashboardClient } from './dashboard-client'
 
 export const dynamic = 'force-dynamic'
@@ -17,98 +17,116 @@ async function getSellerStats(userId: string, shopId: string | null) {
     }
   }
 
-  const [totalProducts, totalOrders, totalRevenue, pendingOrders, activeProducts, recentOrders] = await Promise.all([
-    db.product.count({ where: { shopId } }),
-    db.order.count({
-      where: {
-        items: {
-          some: {
-            product: {
-              shopId,
-            },
-          },
-        },
-      },
-    }),
-    db.order.aggregate({
-      where: {
-        items: {
-          some: {
-            product: {
-              shopId,
-            },
-          },
-        },
-        paymentStatus: 'COMPLETED',
-      },
-      _sum: {
-        total: true,
-      },
-    }),
-    db.order.count({
-      where: {
-        items: {
-          some: {
-            product: {
-              shopId,
-            },
-          },
-        },
-        status: {
-          in: ['PENDING_PAYMENT', 'PROCESSING'],
-        },
-      },
-    }),
-    db.product.count({
-      where: {
-        shopId,
-        status: 'PUBLISHED',
-      },
-    }),
-    db.order.findMany({
-      where: {
-        items: {
-          some: {
-            product: {
-              shopId,
-            },
-          },
-        },
-      },
-      orderBy: { createdAt: 'desc' },
-      take: 5,
-      include: {
-        user: {
-          select: {
-            name: true,
-          },
-        },
-        items: {
-          where: {
-            product: {
-              shopId,
-            },
-          },
-          take: 1,
-        },
-      },
-    }),
+  // Get product IDs for this shop
+  const { data: shopProducts } = await supabaseAdmin
+    .from('products')
+    .select('id')
+    .eq('shopId', shopId)
+
+  const productIds = (shopProducts || []).map((p: any) => p.id)
+
+  if (productIds.length === 0) {
+    return {
+      totalProducts: 0,
+      totalOrders: 0,
+      totalRevenue: 0,
+      pendingOrders: 0,
+      activeProducts: 0,
+      recentOrders: [],
+    }
+  }
+
+  // Get orders that have items with products from this shop
+  const { data: ordersWithShopProducts } = await supabaseAdmin
+    .from('order_items')
+    .select('orderId')
+    .in('productId', productIds)
+
+  const orderIds = [...new Set((ordersWithShopProducts || []).map((item: any) => item.orderId))]
+
+  const [
+    totalProductsResult,
+    totalOrdersResult,
+    revenueOrdersResult,
+    pendingOrdersResult,
+    activeProductsResult,
+    recentOrdersResult,
+  ] = await Promise.all([
+    supabaseAdmin
+      .from('products')
+      .select('*', { count: 'exact', head: true })
+      .eq('shopId', shopId),
+    orderIds.length > 0
+      ? supabaseAdmin
+          .from('orders')
+          .select('*', { count: 'exact', head: true })
+          .in('id', orderIds)
+      : Promise.resolve({ count: 0 }),
+    orderIds.length > 0
+      ? supabaseAdmin
+          .from('orders')
+          .select('total')
+          .in('id', orderIds)
+          .eq('paymentStatus', 'COMPLETED')
+      : Promise.resolve({ data: [] }),
+    orderIds.length > 0
+      ? supabaseAdmin
+          .from('orders')
+          .select('*', { count: 'exact', head: true })
+          .in('id', orderIds)
+          .in('status', ['PENDING_PAYMENT', 'PROCESSING'])
+      : Promise.resolve({ count: 0 }),
+    supabaseAdmin
+      .from('products')
+      .select('*', { count: 'exact', head: true })
+      .eq('shopId', shopId)
+      .eq('status', 'PUBLISHED'),
+    orderIds.length > 0
+      ? supabaseAdmin
+          .from('orders')
+          .select(`
+            id,
+            orderNumber,
+            total,
+            status,
+            createdAt,
+            user:users!orders_userId_fkey (
+              name
+            ),
+            items:order_items!inner (
+              productId
+            )
+          `)
+          .in('id', orderIds)
+          .in('items.productId', productIds)
+          .order('createdAt', { ascending: false })
+          .limit(5)
+      : Promise.resolve({ data: [] }),
   ])
 
+  // Calculate total revenue
+  const totalRevenue = (revenueOrdersResult.data || []).reduce(
+    (sum: number, order: any) => sum + Number(order.total || 0),
+    0
+  )
+
+  // Format recent orders
+  const recentOrders = (recentOrdersResult.data || []).map((order: any) => ({
+    id: order.id,
+    orderNumber: order.orderNumber,
+    userName: order.user?.name || 'Unknown',
+    total: Number(order.total || 0),
+    status: order.status,
+    createdAt: order.createdAt,
+  }))
+
   return {
-    totalProducts,
-    totalOrders,
-    totalRevenue: Number(totalRevenue._sum.total || 0),
-    pendingOrders,
-    activeProducts,
-    recentOrders: recentOrders.map((order) => ({
-      id: order.id,
-      orderNumber: order.orderNumber,
-      userName: order.user.name,
-      total: Number(order.total),
-      status: order.status,
-      createdAt: order.createdAt.toISOString(),
-    })),
+    totalProducts: totalProductsResult.count || 0,
+    totalOrders: totalOrdersResult.count || 0,
+    totalRevenue,
+    pendingOrders: pendingOrdersResult.count || 0,
+    activeProducts: activeProductsResult.count || 0,
+    recentOrders,
   }
 }
 
@@ -124,22 +142,26 @@ export default async function SellerDashboardPage() {
   }
 
   // Get user's shop
-  const user = await db.user.findUnique({
-    where: { id: currentUser.id },
-    include: {
-      shop: true,
-    },
-  })
+  const { data: user } = await supabaseAdmin
+    .from('users')
+    .select(`
+      shops (*)
+    `)
+    .eq('id', currentUser.id)
+    .single()
 
-  const stats = await getSellerStats(currentUser.id, user?.shop?.id || null)
+  const shop = user?.shops && Array.isArray(user.shops) && user.shops.length > 0 ? user.shops[0] : null
+  const stats = await getSellerStats(currentUser.id, shop?.id || null)
 
   // Convert Decimal fields to numbers for client component
-  const shopData = user?.shop ? {
-    ...user.shop,
-    balance: Number(user.shop.balance),
-    rating: Number(user.shop.rating),
-    commissionRate: Number(user.shop.commissionRate),
-  } : null
+  const shopData = shop
+    ? {
+        ...shop,
+        balance: Number(shop.balance || 0),
+        rating: Number(shop.rating || 0),
+        commissionRate: Number(shop.commissionRate || 0),
+      }
+    : null
 
   return <SellerDashboardClient stats={stats} shop={shopData} />
 }

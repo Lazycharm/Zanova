@@ -1,40 +1,45 @@
 import { redirect } from 'next/navigation'
 import { getCurrentUser } from '@/lib/auth'
-import { db } from '@/lib/db'
+import { supabaseAdmin } from '@/lib/supabase'
 import { OrdersClient } from './orders-client'
 
 async function getUserOrders(userId: string) {
-  const orders = await db.order.findMany({
-    where: { userId },
-    orderBy: { createdAt: 'desc' },
-    include: {
-      items: {
-        include: {
-          product: {
-            select: {
-              name: true,
-              slug: true,
-              images: {
-                where: { isPrimary: true },
-                take: 1,
-              },
-            },
-          },
-        },
-      },
-    },
-  })
+  const { data: orders, error } = await supabaseAdmin
+    .from('orders')
+    .select(`
+      *,
+      items:order_items (
+        *,
+        product:products!order_items_productId_fkey (
+          name,
+          slug,
+          images:product_images!inner (
+            url
+          )
+        )
+      )
+    `)
+    .eq('userId', userId)
+    .order('createdAt', { ascending: false })
 
-  return orders.map((order) => ({
+  if (error) {
+    throw error
+  }
+
+  return (orders || []).map((order: any) => ({
     ...order,
     total: Number(order.total),
     subtotal: Number(order.subtotal),
     tax: Number(order.tax),
     shippingCost: Number(order.shipping),
-    items: order.items.map((item) => ({
+    items: (order.items || []).map((item: any) => ({
       ...item,
       price: Number(item.price),
       quantity: item.quantity,
+      product: item.product ? {
+        ...item.product,
+        images: item.product.images || [],
+      } : null,
     })),
   }))
 }

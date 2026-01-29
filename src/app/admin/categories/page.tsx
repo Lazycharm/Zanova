@@ -1,22 +1,41 @@
-import { db } from '@/lib/db'
+import { supabaseAdmin } from '@/lib/supabase'
 import { CategoriesClient } from './categories-client'
 
 export const dynamic = 'force-dynamic'
 
 async function getCategories() {
-  const categories = await db.category.findMany({
-    orderBy: { sortOrder: 'asc' },
-    include: {
-      _count: {
-        select: { products: true },
-      },
-      parent: {
-        select: { name: true },
-      },
-    },
-  })
+  const { data: categories, error } = await supabaseAdmin
+    .from('categories')
+    .select(`
+      *,
+      parent:categories!categories_parentId_fkey (
+        name
+      )
+    `)
+    .order('sortOrder', { ascending: true })
 
-  return categories
+  if (error) {
+    throw error
+  }
+
+  // Get product counts for each category
+  const categoriesWithCounts = await Promise.all(
+    (categories || []).map(async (category: any) => {
+      const { count } = await supabaseAdmin
+        .from('products')
+        .select('*', { count: 'exact', head: true })
+        .eq('categoryId', category.id)
+
+      return {
+        ...category,
+        _count: {
+          products: count || 0,
+        },
+      }
+    })
+  )
+
+  return categoriesWithCounts
 }
 
 export default async function AdminCategoriesPage() {
