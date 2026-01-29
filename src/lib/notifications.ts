@@ -1,4 +1,4 @@
-import { db } from './db'
+import { supabaseAdmin } from './supabase'
 
 export interface CreateNotificationParams {
   userId: string
@@ -13,15 +13,22 @@ export interface CreateNotificationParams {
  */
 export async function createNotification(params: CreateNotificationParams) {
   try {
-    const notification = await db.notification.create({
-      data: {
+    const { data: notification, error } = await supabaseAdmin
+      .from('notifications')
+      .insert({
         userId: params.userId,
         title: params.title,
         message: params.message,
         type: params.type,
         link: params.link || null,
-      },
-    })
+      })
+      .select()
+      .single()
+
+    if (error) {
+      throw error
+    }
+
     return notification
   } catch (error) {
     console.error('Error creating notification:', error)
@@ -37,20 +44,24 @@ export async function createNotificationsForUsers(
   params: Omit<CreateNotificationParams, 'userId'>
 ) {
   try {
-    const notifications = await Promise.all(
-      userIds.map((userId) =>
-        db.notification.create({
-          data: {
-            userId,
-            title: params.title,
-            message: params.message,
-            type: params.type,
-            link: params.link || null,
-          },
-        })
-      )
-    )
-    return notifications
+    const notifications = userIds.map((userId) => ({
+      userId,
+      title: params.title,
+      message: params.message,
+      type: params.type,
+      link: params.link || null,
+    }))
+
+    const { data, error } = await supabaseAdmin
+      .from('notifications')
+      .insert(notifications)
+      .select()
+
+    if (error) {
+      throw error
+    }
+
+    return data || []
   } catch (error) {
     console.error('Error creating notifications:', error)
     throw error
@@ -64,24 +75,33 @@ export async function createBroadcastNotification(
   params: Omit<CreateNotificationParams, 'userId'>
 ) {
   try {
-    const users = await db.user.findMany({
-      select: { id: true },
-    })
+    // Get all user IDs
+    const { data: users } = await supabaseAdmin
+      .from('users')
+      .select('id')
 
-    const notifications = await Promise.all(
-      users.map((user) =>
-        db.notification.create({
-          data: {
-            userId: user.id,
-            title: params.title,
-            message: params.message,
-            type: params.type,
-            link: params.link || null,
-          },
-        })
-      )
-    )
-    return notifications
+    if (!users || users.length === 0) {
+      return []
+    }
+
+    const notifications = users.map((user) => ({
+      userId: user.id,
+      title: params.title,
+      message: params.message,
+      type: params.type,
+      link: params.link || null,
+    }))
+
+    const { data, error } = await supabaseAdmin
+      .from('notifications')
+      .insert(notifications)
+      .select()
+
+    if (error) {
+      throw error
+    }
+
+    return data || []
   } catch (error) {
     console.error('Error creating broadcast notification:', error)
     throw error

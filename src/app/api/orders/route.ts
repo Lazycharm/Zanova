@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
-import { db } from '@/lib/db'
+import { supabaseAdmin } from '@/lib/supabase'
 import { createNotification } from '@/lib/notifications'
 
 export async function POST(request: NextRequest) {
@@ -32,9 +32,26 @@ export async function POST(request: NextRequest) {
     const tax = subtotal * 0.1 // 10% tax
     const totalAmount = subtotal + shippingCost + tax
 
+    // Get product details for order items
+    const productIds = items.map((item: any) => item.productId)
+    const { data: products } = await supabaseAdmin
+      .from('products')
+      .select(`
+        id,
+        name,
+        images:product_images!inner (
+          url
+        )
+      `)
+      .in('id', productIds)
+      .eq('images.isPrimary', true)
+
+    const productMap = new Map((products || []).map((p: any) => [p.id, p]))
+
     // Create order
-    const order = await db.order.create({
-      data: {
+    const { data: order, error: orderError } = await supabaseAdmin
+      .from('orders')
+      .insert({
         userId: session.userId,
         orderNumber,
         subtotal,
@@ -47,47 +64,60 @@ export async function POST(request: NextRequest) {
           ? 'CASH_ON_DELIVERY' 
           : paymentMethod === 'card'
           ? 'BANK_TRANSFER'
-          : cryptoType as any,
+          : cryptoType,
         cryptoCurrency: paymentMethod === 'crypto' ? cryptoType : undefined,
         notes: JSON.stringify({ 
           shippingAddress: address,
           cryptoAddressId: paymentMethod === 'crypto' ? cryptoAddressId : undefined
         }),
-        items: {
-          create: await Promise.all(items.map(async (item: any) => {
-            const product = await db.product.findUnique({
-              where: { id: item.productId },
-              include: {
-                images: {
-                  where: { isPrimary: true },
-                  take: 1,
-                },
-              },
-            })
-            return {
-              productId: item.productId,
-              name: product?.name || 'Unknown Product',
-              quantity: item.quantity,
-              price: item.price,
-              image: product?.images[0]?.url || null,
-            }
-          })),
-        },
-      },
-      include: {
-        items: true,
-        user: {
-          select: {
-            id: true,
-          },
-        },
-      },
+      })
+      .select()
+      .single()
+
+    if (orderError || !order) {
+      throw orderError || new Error('Failed to create order')
+    }
+
+    // Create order items
+    const orderItems = items.map((item: any) => {
+      const product = productMap.get(item.productId)
+      return {
+        orderId: order.id,
+        productId: item.productId,
+        name: product?.name || 'Unknown Product',
+        quantity: item.quantity,
+        price: item.price,
+        image: product?.images && product.images.length > 0 ? product.images[0].url : null,
+      }
     })
+
+    const { error: itemsError } = await supabaseAdmin
+      .from('order_items')
+      .insert(orderItems)
+
+    if (itemsError) {
+      // Rollback order if items fail
+      await supabaseAdmin.from('orders').delete().eq('id', order.id)
+      throw itemsError
+    }
+
+    // Fetch complete order with items
+    const { data: completeOrder } = await supabaseAdmin
+      .from('orders')
+      .select(`
+        *,
+        items:order_items (*),
+        user:users!orders_userId_fkey (
+          id
+        )
+      `)
+      .eq('id', order.id)
+      .single()
 
     // Create notification for order placement
     try {
       await createNotification({
-        userId: order.user.id,
+        userId: session.userId,
         title: 'Order Placed',
         message: `Your order ${order.orderNumber} has been placed successfully`,
         type: 'order',
@@ -101,7 +131,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       message: 'Order placed successfully',
       orderId: order.id,
-      order,
+      order: completeOrder,
     })
   } catch (error) {
     console.error('Order creation error:', error)
@@ -122,32 +152,42 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    const orders = await db.order.findMany({
-      where: {
-        userId: session.userId,
-      },
-      include: {
-        items: {
-          include: {
-            product: {
-              include: {
-                images: {
-                  where: {
-                    isPrimary: true,
-                  },
-                  take: 1,
-                },
-              },
-            },
-          },
-        },
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    })
+    const { data: orders, error } = await supabaseAdmin
+      .from('orders')
+      .select(`
+        *,
+        items:order_items (
+          *,
+          product:products!order_items_productId_fkey (
+            id,
+            name,
+            slug,
+            images:product_images!inner (
+              url
+            )
+          )
+        )
+      `)
+      .eq('userId', session.userId)
+      .order('createdAt', { ascending: false })
 
-    return NextResponse.json({ orders })
+    if (error) {
+      throw error
+    }
+
+    // Format orders to match expected structure
+    const formattedOrders = (orders || []).map((order: any) => ({
+      ...order,
+      items: (order.items || []).map((item: any) => ({
+        ...item,
+        product: item.product ? {
+          ...item.product,
+          images: item.product.images || [],
+        } : null,
+      })),
+    }))
+
+    return NextResponse.json({ orders: formattedOrders })
   } catch (error) {
     console.error('Orders fetch error:', error)
     return NextResponse.json(

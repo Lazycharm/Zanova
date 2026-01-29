@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
-import { db } from '@/lib/db'
+import { supabaseAdmin } from '@/lib/supabase'
 
 export async function GET(request: NextRequest) {
   try {
@@ -17,48 +17,44 @@ export async function GET(request: NextRequest) {
     const paymentStatus = searchParams.get('paymentStatus')
     const paymentMethod = searchParams.get('paymentMethod')
 
-    const where: any = {}
+    let query = supabaseAdmin
+      .from('orders')
+      .select(`
+        *,
+        user:users!orders_userId_fkey (
+          id,
+          name,
+          email
+        ),
+        address:addresses (*),
+        items:order_items (
+          *,
+          product:products!order_items_productId_fkey (
+            name,
+            slug
+          )
+        )
+      `)
 
     if (status) {
-      where.status = status
+      query = query.eq('status', status)
     }
 
     if (paymentStatus) {
-      where.paymentStatus = paymentStatus
+      query = query.eq('paymentStatus', paymentStatus)
     }
 
     if (paymentMethod) {
-      where.paymentMethod = paymentMethod
+      query = query.eq('paymentMethod', paymentMethod)
     }
 
-    const orders = await db.order.findMany({
-      where,
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
-        address: true,
-        items: {
-          include: {
-            product: {
-              select: {
-                name: true,
-                slug: true,
-              },
-            },
-          },
-        },
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    })
+    const { data: orders, error } = await query.order('createdAt', { ascending: false })
 
-    return NextResponse.json({ orders })
+    if (error) {
+      throw error
+    }
+
+    return NextResponse.json({ orders: orders || [] })
   } catch (error) {
     console.error('Fetch orders error:', error)
     return NextResponse.json(
