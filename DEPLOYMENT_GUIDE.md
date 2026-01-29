@@ -102,37 +102,67 @@ a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6a7b8c9d0e1f2
 
 ### 2. Seed Initial Data
 
-After deployment, seed the database with initial admin user and default data:
+After running the schema and deploying your app, seed the database with initial data:
 
-**Step 1:** Make sure `SEED_SECRET_KEY` is set in your environment variables (same value you generated above)
+**Step 1:** Make sure environment variables are set
+- `SEED_SECRET_KEY` - The key you generated earlier
+- `ADMIN_EMAIL` - Your admin email (default: `admin@zanova.com`)
+- `ADMIN_PASSWORD` - Your admin password (choose a strong password!)
 
-**Step 2:** Call the seed endpoint using one of these methods:
+**Step 2:** Call the seed endpoint
 
-**Using curl:**
+**Option A: Using Browser (Easiest)**
+1. After deployment, visit: `https://your-domain.com/api/admin/seed?key=YOUR_SEED_SECRET_KEY`
+2. You'll see a JSON response confirming the seed
+
+**Option B: Using curl**
 ```bash
-curl -X POST "https://your-domain.com/api/admin/seed?key=YOUR_SEED_SECRET_KEY"
+curl "https://your-domain.com/api/admin/seed?key=YOUR_SEED_SECRET_KEY"
 ```
 
-**Using browser:**
-Visit: `https://your-domain.com/api/admin/seed?key=YOUR_SEED_SECRET_KEY`
-
-**Using fetch (browser console):**
+**Option C: Using fetch (Browser Console)**
 ```javascript
-fetch('/api/admin/seed?key=YOUR_SEED_SECRET_KEY', { method: 'POST' })
+fetch('/api/admin/seed?key=YOUR_SEED_SECRET_KEY')
   .then(r => r.json())
   .then(console.log)
 ```
 
-**Expected Response:**
+**What Gets Created:**
+
+✅ **Admin User**
+- Email: Your `ADMIN_EMAIL` (or `admin@zanova.com` by default)
+- Password: Your `ADMIN_PASSWORD` (or `admin123` by default)
+- Role: ADMIN
+- Can sell: Yes
+
+✅ **Demo Users** (for testing)
+- `user@zalora.com` / `user123` - Regular user
+- `seller@zalora.com` / `seller123` - User with selling permissions
+
+✅ **12 Default Categories**
+- Lifestyle, Men Shoes, Women Shoes, Accessories, Men Clothing, Women Bags, Men Bags, Women Clothing, Girls, Boys, Electronics, Home & Garden
+
+✅ **Default Settings**
+- Site name, currency, payment methods, shipping settings, etc.
+
+✅ **Hero Slides**
+- 2 default homepage banner slides
+
+**Expected Success Response:**
 ```json
 {
   "success": true,
-  "message": "Database seeded successfully",
-  "adminEmail": "admin@zanova.com"
+  "message": "Database seeded successfully!",
+  "adminEmail": "admin@zanova.com",
+  "adminPassword": "your-admin-password",
+  "usersCreated": 3,
+  "categoriesCreated": 12,
+  "settingsCreated": 16,
+  "heroSlidesCreated": 2
 }
 ```
 
-**If already seeded:**
+**If Already Seeded:**
 ```json
 {
   "success": true,
@@ -141,17 +171,12 @@ fetch('/api/admin/seed?key=YOUR_SEED_SECRET_KEY', { method: 'POST' })
 }
 ```
 
-**Default Admin Credentials (after seeding):**
-- Email: `admin@zanova.com` (or your `ADMIN_EMAIL` from env)
-- Password: Your `ADMIN_PASSWORD` from env
-
-**Note:** The seed endpoint will:
-- Create the admin user
-- Create default categories
-- Create default settings
-- Set up initial configuration
-
-You only need to run this once after setting up a new Supabase project.
+**Important Notes:**
+- ✅ Safe to run multiple times - won't duplicate data
+- ✅ Only creates data if it doesn't exist
+- ✅ Use the same `SEED_SECRET_KEY` in your env and the URL
+- ✅ Run this **after** deploying your app (the endpoint needs to be accessible)
+- ✅ You only need to seed once per database setup
 
 ## Deployment Options
 

@@ -1,0 +1,6 @@
+﻿DATABASE_URL="postgresql://prisma.mcqtqdgssnpkbrsyonnd:YurQg8oRDFsUnn@aws-0-us-west-2.pooler.supabase.com:5432/postgres"
+JWT_SECRET="232b4baa-ba10-4071-b6c1-7b30ffa4813a"
+ADMIN_EMAIL="admin@zanova.com"
+ADMIN_PASSWORD="admin123"
+NEXT_PUBLIC_APP_URL="https://zanova.sbs"
+NEXT_PUBLIC_APP_NAME="ZALORA"
