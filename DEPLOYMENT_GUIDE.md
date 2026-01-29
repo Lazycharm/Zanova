@@ -271,11 +271,30 @@ fetch('/api/admin/seed?key=YOUR_SEED_SECRET_KEY')
    - Connect your Git repository
    - Set branch to `main` or `master`
    - Click **Deploy** or **Pull from Git**
+   - ✅ Git automatically excludes files in `.gitignore`
 
    **Option B: Manual Upload (FTP/File Manager)**
-   - Connect via FTP or use File Manager
-   - Upload ALL project files to the app directory
-   - Make sure `.gitignore` files are uploaded (but NOT `.env` files)
+   
+   **⚠️ IMPORTANT: Do NOT upload these folders/files:**
+   - ❌ `node_modules/` - Will be installed on server
+   - ❌ `.next/` - Will be built on server
+   - ❌ `.env` or `.env.local` - Set in Hostinger panel instead
+   - ❌ `.git/` - Not needed
+   - ❌ `.vscode/`, `.idea/` - IDE files
+   - ❌ `netlify/`, `netlify.toml` - Not needed
+   - ❌ `*.log` files - Log files
+   
+   **✅ DO upload these:**
+   - ✅ `src/` - All source code
+   - ✅ `public/` - Public assets
+   - ✅ `package.json` and `package-lock.json`
+   - ✅ `next.config.js`, `tailwind.config.ts`, `tsconfig.json`
+   - ✅ All configuration files
+   
+   **Upload Methods:**
+   - **FTP**: Use FileZilla or similar, configure to skip `node_modules` and `.next`
+   - **File Manager**: Create ZIP excluding ignored files, then upload and extract
+   - **See `HOSTINGER_DEPLOYMENT.md` for detailed exclusion list**
 
 4. **Set Environment Variables**
    
