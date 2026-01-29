@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/db'
+import { supabaseAdmin } from '@/lib/supabase'
 import { getSession } from '@/lib/auth'
 
 export async function POST(req: NextRequest) {
@@ -10,15 +10,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    await db.notification.updateMany({
-      where: {
-        userId: session.userId,
-        isRead: false,
-      },
-      data: {
-        isRead: true,
-      },
-    })
+    const { error } = await supabaseAdmin
+      .from('notifications')
+      .update({ isRead: true })
+      .eq('userId', session.userId)
+      .eq('isRead', false)
+
+    if (error) {
+      throw error
+    }
 
     return NextResponse.json({ success: true })
   } catch (error) {

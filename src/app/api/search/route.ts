@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/db'
+import { supabaseAdmin } from '@/lib/supabase'
 
 export async function GET(request: NextRequest) {
   try {
@@ -10,64 +10,43 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ products: [] })
     }
 
-    // Search products by name, description, or category
-    const products = await db.product.findMany({
-      where: {
-        AND: [
-          {
-            status: 'PUBLISHED',
-          },
-          {
-            OR: [
-              {
-                name: {
-                  contains: query,
-                  mode: 'insensitive',
-                },
-              },
-              {
-                description: {
-                  contains: query,
-                  mode: 'insensitive',
-                },
-              },
-              {
-                shortDesc: {
-                  contains: query,
-                  mode: 'insensitive',
-                },
-              },
-            ],
-          },
-        ],
-      },
-      include: {
-        category: {
-          select: {
-            name: true,
-          },
-        },
-        images: {
-          where: {
-            isPrimary: true,
-          },
-          take: 1,
-        },
-      },
-      take: 10, // Limit to 10 results for quick search
-      orderBy: {
-        totalSales: 'desc', // Show popular products first
-      },
-    })
+    // Search products by name, description, or shortDesc
+    // Supabase uses ilike for case-insensitive search
+    const { data: products, error } = await supabaseAdmin
+      .from('products')
+      .select(`
+        id,
+        name,
+        slug,
+        price,
+        comparePrice,
+        description,
+        shortDesc,
+        category:categories!products_categoryId_fkey (
+          name
+        ),
+        images:product_images!inner (
+          url
+        )
+      `)
+      .eq('status', 'PUBLISHED')
+      .eq('images.isPrimary', true)
+      .or(`name.ilike.%${query}%,description.ilike.%${query}%,shortDesc.ilike.%${query}%`)
+      .order('totalSales', { ascending: false })
+      .limit(10)
+
+    if (error) {
+      throw error
+    }
 
     // Format the response
-    const formattedProducts = products.map((product) => ({
+    const formattedProducts = (products || []).map((product: any) => ({
       id: product.id,
       name: product.name,
       slug: product.slug,
-      price: product.price,
-      comparePrice: product.comparePrice,
-      image: product.images[0]?.url || null,
+      price: Number(product.price),
+      comparePrice: product.comparePrice ? Number(product.comparePrice) : null,
+      image: product.images && product.images.length > 0 ? product.images[0].url : null,
       categoryName: product.category?.name || 'Uncategorized',
     }))
 

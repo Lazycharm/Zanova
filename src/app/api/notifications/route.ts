@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/db'
+import { supabaseAdmin } from '@/lib/supabase'
 import { getSession } from '@/lib/auth'
 
 export async function GET(req: NextRequest) {
@@ -14,39 +14,39 @@ export async function GET(req: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '20')
     const unreadOnly = searchParams.get('unreadOnly') === 'true'
 
-    const where: any = {
-      userId: session.userId,
-    }
+    let query = supabaseAdmin
+      .from('notifications')
+      .select('*')
+      .eq('userId', session.userId)
 
     if (unreadOnly) {
-      where.isRead = false
+      query = query.eq('isRead', false)
     }
 
-    const [notifications, unreadCount] = await Promise.all([
-      db.notification.findMany({
-        where,
-        take: limit,
-        orderBy: { createdAt: 'desc' },
-      }),
-      db.notification.count({
-        where: {
-          userId: session.userId,
-          isRead: false,
-        },
-      }),
+    const [notificationsResult, unreadCountResult] = await Promise.all([
+      query.order('createdAt', { ascending: false }).limit(limit),
+      supabaseAdmin
+        .from('notifications')
+        .select('*', { count: 'exact', head: true })
+        .eq('userId', session.userId)
+        .eq('isRead', false),
     ])
 
+    if (notificationsResult.error) {
+      throw notificationsResult.error
+    }
+
     return NextResponse.json({
-      notifications: notifications.map((n) => ({
+      notifications: (notificationsResult.data || []).map((n: any) => ({
         id: n.id,
         title: n.title,
         message: n.message,
         type: n.type,
         link: n.link,
         isRead: n.isRead,
-        createdAt: n.createdAt.toISOString(),
+        createdAt: n.createdAt,
       })),
-      unreadCount,
+      unreadCount: unreadCountResult.count || 0,
     })
   } catch (error) {
     console.error('Error fetching notifications:', error)
@@ -77,15 +77,21 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const notification = await db.notification.create({
-      data: {
+    const { data: notification, error } = await supabaseAdmin
+      .from('notifications')
+      .insert({
         userId,
         title,
         message,
         type,
         link: link || null,
-      },
-    })
+      })
+      .select()
+      .single()
+
+    if (error) {
+      throw error
+    }
 
     return NextResponse.json({
       notification: {
@@ -95,7 +101,7 @@ export async function POST(req: NextRequest) {
         type: notification.type,
         link: notification.link,
         isRead: notification.isRead,
-        createdAt: notification.createdAt.toISOString(),
+        createdAt: notification.createdAt,
       },
     })
   } catch (error) {

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
-import { db } from '@/lib/db'
+import { supabaseAdmin } from '@/lib/supabase'
 import { createNotification } from '@/lib/notifications'
 
 export async function GET(
@@ -16,46 +16,52 @@ export async function GET(
       )
     }
 
-    const order = await db.order.findUnique({
-      where: { id: params.id },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            phone: true,
-          },
-        },
-        address: true,
-        items: {
-          include: {
-            product: {
-              select: {
-                id: true,
-                name: true,
-                slug: true,
-                images: {
-                  select: {
-                    url: true,
-                  },
-                  take: 1,
-                },
-              },
-            },
-          },
-        },
-      },
-    })
+    const { data: order, error } = await supabaseAdmin
+      .from('orders')
+      .select(`
+        *,
+        user:users!orders_userId_fkey (
+          id,
+          name,
+          email,
+          phone
+        ),
+        address:addresses (*),
+        items:order_items (
+          *,
+          product:products!order_items_productId_fkey (
+            id,
+            name,
+            slug,
+            images:product_images!inner (
+              url
+            )
+          )
+        )
+      `)
+      .eq('id', params.id)
+      .single()
 
-    if (!order) {
+    if (error || !order) {
       return NextResponse.json(
         { message: 'Order not found' },
         { status: 404 }
       )
     }
 
-    return NextResponse.json({ order })
+    // Format product images
+    const formattedOrder = {
+      ...order,
+      items: (order.items || []).map((item: any) => ({
+        ...item,
+        product: item.product ? {
+          ...item.product,
+          images: item.product.images || [],
+        } : null,
+      })),
+    }
+
+    return NextResponse.json({ order: formattedOrder })
   } catch (error) {
     console.error('Fetch order error:', error)
     return NextResponse.json(
@@ -87,17 +93,17 @@ export async function PATCH(
       updateData.status = status
       // Auto-set timestamps based on status
       if (status === 'SHIPPED' && !shippedAt) {
-        updateData.shippedAt = new Date()
+        updateData.shippedAt = new Date().toISOString()
       }
       if (status === 'DELIVERED' && !deliveredAt) {
-        updateData.deliveredAt = new Date()
+        updateData.deliveredAt = new Date().toISOString()
       }
     }
 
     if (paymentStatus) {
       updateData.paymentStatus = paymentStatus
       if (paymentStatus === 'COMPLETED' && !body.paidAt) {
-        updateData.paidAt = new Date()
+        updateData.paidAt = new Date().toISOString()
       }
     }
 
@@ -110,51 +116,49 @@ export async function PATCH(
     }
 
     if (shippedAt) {
-      updateData.shippedAt = new Date(shippedAt)
+      updateData.shippedAt = new Date(shippedAt).toISOString()
     }
 
     if (deliveredAt) {
-      updateData.deliveredAt = new Date(deliveredAt)
+      updateData.deliveredAt = new Date(deliveredAt).toISOString()
     }
 
     // Get order before update to check for status changes
-    const oldOrder = await db.order.findUnique({
-      where: { id: params.id },
-      select: {
-        userId: true,
-        status: true,
-        paymentStatus: true,
-        orderNumber: true,
-      },
-    })
+    const { data: oldOrder, error: oldOrderError } = await supabaseAdmin
+      .from('orders')
+      .select('userId, status, paymentStatus, orderNumber')
+      .eq('id', params.id)
+      .single()
 
-    if (!oldOrder) {
+    if (oldOrderError || !oldOrder) {
       return NextResponse.json({ error: 'Order not found' }, { status: 404 })
     }
 
-    const order = await db.order.update({
-      where: { id: params.id },
-      data: updateData,
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
-        items: {
-          include: {
-            product: {
-              select: {
-                name: true,
-                slug: true,
-              },
-            },
-          },
-        },
-      },
-    })
+    // Update order
+    const { data: order, error: updateError } = await supabaseAdmin
+      .from('orders')
+      .update(updateData)
+      .eq('id', params.id)
+      .select(`
+        *,
+        user:users!orders_userId_fkey (
+          id,
+          name,
+          email
+        ),
+        items:order_items (
+          *,
+          product:products!order_items_productId_fkey (
+            name,
+            slug
+          )
+        )
+      `)
+      .single()
+
+    if (updateError) {
+      throw updateError
+    }
 
     // Create notifications for status changes
     try {

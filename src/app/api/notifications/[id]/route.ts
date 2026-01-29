@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/db'
+import { supabaseAdmin } from '@/lib/supabase'
 import { getSession } from '@/lib/auth'
 
 export async function PATCH(
@@ -17,9 +17,11 @@ export async function PATCH(
     const { isRead } = body
 
     // Verify notification belongs to user
-    const notification = await db.notification.findUnique({
-      where: { id: params.id },
-    })
+    const { data: notification } = await supabaseAdmin
+      .from('notifications')
+      .select('userId')
+      .eq('id', params.id)
+      .single()
 
     if (!notification) {
       return NextResponse.json({ error: 'Notification not found' }, { status: 404 })
@@ -29,12 +31,18 @@ export async function PATCH(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
-    const updated = await db.notification.update({
-      where: { id: params.id },
-      data: {
+    const { data: updated, error } = await supabaseAdmin
+      .from('notifications')
+      .update({
         isRead: isRead !== undefined ? isRead : true,
-      },
-    })
+      })
+      .eq('id', params.id)
+      .select()
+      .single()
+
+    if (error) {
+      throw error
+    }
 
     return NextResponse.json({
       notification: {
@@ -44,7 +52,7 @@ export async function PATCH(
         type: updated.type,
         link: updated.link,
         isRead: updated.isRead,
-        createdAt: updated.createdAt.toISOString(),
+        createdAt: updated.createdAt,
       },
     })
   } catch (error) {
@@ -65,9 +73,11 @@ export async function DELETE(
     }
 
     // Verify notification belongs to user
-    const notification = await db.notification.findUnique({
-      where: { id: params.id },
-    })
+    const { data: notification } = await supabaseAdmin
+      .from('notifications')
+      .select('userId')
+      .eq('id', params.id)
+      .single()
 
     if (!notification) {
       return NextResponse.json({ error: 'Notification not found' }, { status: 404 })
@@ -77,9 +87,14 @@ export async function DELETE(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
-    await db.notification.delete({
-      where: { id: params.id },
-    })
+    const { error } = await supabaseAdmin
+      .from('notifications')
+      .delete()
+      .eq('id', params.id)
+
+    if (error) {
+      throw error
+    }
 
     return NextResponse.json({ success: true })
   } catch (error) {

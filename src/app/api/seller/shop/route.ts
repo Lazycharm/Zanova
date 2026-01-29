@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/db'
+import { supabaseAdmin } from '@/lib/supabase'
 import { getSession } from '@/lib/auth'
-import { ShopStatus } from '@prisma/client'
+import { ShopStatus } from '@/lib/auth'
 
 export async function POST(req: NextRequest) {
   try {
@@ -12,16 +12,17 @@ export async function POST(req: NextRequest) {
     }
 
     // Check if user can sell
-    const user = await db.user.findUnique({
-      where: { id: session.userId },
-      select: { canSell: true, shop: true },
-    })
+    const { data: user } = await supabaseAdmin
+      .from('users')
+      .select('canSell, shops (*)')
+      .eq('id', session.userId)
+      .single()
 
     if (!user?.canSell) {
       return NextResponse.json({ error: 'You do not have permission to create a shop' }, { status: 403 })
     }
 
-    if (user.shop) {
+    if (user.shops && Array.isArray(user.shops) && user.shops.length > 0) {
       return NextResponse.json({ error: 'You already have a shop' }, { status: 400 })
     }
 
@@ -36,14 +37,20 @@ export async function POST(req: NextRequest) {
     }
 
     // Check if slug already exists
-    const existing = await db.shop.findUnique({ where: { slug } })
+    const { data: existing } = await supabaseAdmin
+      .from('shops')
+      .select('id')
+      .eq('slug', slug)
+      .single()
+
     if (existing) {
       return NextResponse.json({ error: 'Slug already exists' }, { status: 400 })
     }
 
     // Create shop
-    const shop = await db.shop.create({
-      data: {
+    const { data: shop, error } = await supabaseAdmin
+      .from('shops')
+      .insert({
         userId: session.userId,
         name,
         slug,
@@ -51,8 +58,13 @@ export async function POST(req: NextRequest) {
         logo: logo || null,
         banner: banner || null,
         status: ShopStatus.PENDING,
-      },
-    })
+      })
+      .select()
+      .single()
+
+    if (error) {
+      throw error
+    }
 
     return NextResponse.json({ shop })
   } catch (error) {
@@ -69,44 +81,57 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const user = await db.user.findUnique({
-      where: { id: session.userId },
-      include: { shop: true },
-    })
+    const { data: user } = await supabaseAdmin
+      .from('users')
+      .select('shops (*)')
+      .eq('id', session.userId)
+      .single()
 
-    if (!user?.shop) {
+    if (!user?.shops || !Array.isArray(user.shops) || user.shops.length === 0) {
       return NextResponse.json({ error: 'Shop not found' }, { status: 404 })
     }
 
+    const shop = user.shops[0]
     const body = await req.json()
     const { name, slug, description, logo, banner } = body
 
-    // Check if slug is being changed and if it's already taken
-    if (slug && slug !== user.shop.slug) {
-      const existing = await db.shop.findFirst({
-        where: {
-          slug,
-          NOT: { id: user.shop.id },
-        },
-      })
+    const updateData: any = {}
+    if (name !== undefined) updateData.name = name
+    if (slug !== undefined) updateData.slug = slug
+    if (description !== undefined) updateData.description = description || null
+    if (logo !== undefined) updateData.logo = logo || null
+    if (banner !== undefined) updateData.banner = banner || null
+
+    if (Object.keys(updateData).length === 0) {
+      return NextResponse.json({ error: 'No fields to update' }, { status: 400 })
+    }
+
+    // If slug is being updated, check if it's already taken
+    if (slug && slug !== shop.slug) {
+      const { data: existing } = await supabaseAdmin
+        .from('shops')
+        .select('id')
+        .eq('slug', slug)
+        .neq('id', shop.id)
+        .single()
+
       if (existing) {
         return NextResponse.json({ error: 'Slug already exists' }, { status: 400 })
       }
     }
 
-    // Update shop
-    const shop = await db.shop.update({
-      where: { id: user.shop.id },
-      data: {
-        name: name || undefined,
-        slug: slug || undefined,
-        description: description !== undefined ? description : undefined,
-        logo: logo !== undefined ? logo : undefined,
-        banner: banner !== undefined ? banner : undefined,
-      },
-    })
+    const { data: updatedShop, error } = await supabaseAdmin
+      .from('shops')
+      .update(updateData)
+      .eq('id', shop.id)
+      .select()
+      .single()
 
-    return NextResponse.json({ shop })
+    if (error) {
+      throw error
+    }
+
+    return NextResponse.json({ shop: updatedShop })
   } catch (error) {
     console.error('Error updating shop:', error)
     return NextResponse.json({ error: 'Failed to update shop' }, { status: 500 })

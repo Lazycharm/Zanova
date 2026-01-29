@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
-import { db } from '@/lib/db'
+import { supabaseAdmin } from '@/lib/supabase'
 
 export async function POST(
   request: NextRequest,
@@ -15,14 +15,20 @@ export async function POST(
       )
     }
 
-    const order = await db.order.update({
-      where: { id: params.id },
-      data: {
+    const { data: order, error } = await supabaseAdmin
+      .from('orders')
+      .update({
         paymentStatus: 'COMPLETED',
         status: 'PAID',
-        paidAt: new Date(),
-      },
-    })
+        paidAt: new Date().toISOString(),
+      })
+      .eq('id', params.id)
+      .select()
+      .single()
+
+    if (error) {
+      throw error
+    }
 
     return NextResponse.json({
       message: 'Order payment approved successfully',

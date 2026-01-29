@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/db'
+import { supabaseAdmin } from '@/lib/supabase'
 import { getSession } from '@/lib/auth'
 
 export async function GET(req: NextRequest) {
@@ -10,64 +10,74 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const user = await db.user.findUnique({
-      where: { id: session.userId },
-      include: { shop: true },
-    })
+    // Get user with shop
+    const { data: user } = await supabaseAdmin
+      .from('users')
+      .select('shops (*)')
+      .eq('id', session.userId)
+      .single()
 
-    if (!user?.shop) {
+    if (!user?.shops || !Array.isArray(user.shops) || user.shops.length === 0) {
       return NextResponse.json({ error: 'Shop not found' }, { status: 404 })
     }
 
+    const shop = user.shops[0]
     const { searchParams } = new URL(req.url)
     const status = searchParams.get('status')
 
-    const where: any = {
-      items: {
-        some: {
-          product: {
-            shopId: user.shop.id,
-          },
-        },
-      },
-    }
+    // Get all orders with items that have products from this shop
+    let query = supabaseAdmin
+      .from('orders')
+      .select(`
+        *,
+        user:users!orders_userId_fkey (
+          id,
+          name,
+          email
+        ),
+        items:order_items (
+          *,
+          product:products!order_items_productId_fkey (
+            shopId
+          )
+        )
+      `)
 
     if (status && status !== 'all') {
-      where.status = status
+      query = query.eq('status', status)
     }
 
-    const orders = await db.order.findMany({
-      where,
-      orderBy: { createdAt: 'desc' },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
-        items: {
-          where: {
-            product: {
-              shopId: user.shop.id,
-            },
-          },
-        },
-      },
-    })
+    const { data: orders, error } = await query.order('createdAt', { ascending: false })
+
+    if (error) {
+      throw error
+    }
+
+    // Filter orders to only include those with items from this shop
+    const filteredOrders = (orders || [])
+      .map((order: any) => {
+        const shopItems = (order.items || []).filter(
+          (item: any) => item.product?.shopId === shop.id
+        )
+        if (shopItems.length === 0) return null
+        return {
+          ...order,
+          items: shopItems,
+        }
+      })
+      .filter(Boolean)
 
     return NextResponse.json({
-      orders: orders.map((order) => ({
+      orders: filteredOrders.map((order: any) => ({
         id: order.id,
         orderNumber: order.orderNumber,
         status: order.status,
         paymentStatus: order.paymentStatus,
         total: Number(order.total),
         createdAt: order.createdAt,
-        userName: order.user.name,
-        userEmail: order.user.email,
-        items: order.items.map((item) => ({
+        userName: order.user?.name,
+        userEmail: order.user?.email,
+        items: order.items.map((item: any) => ({
           id: item.id,
           name: item.name,
           quantity: item.quantity,
