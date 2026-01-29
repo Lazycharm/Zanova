@@ -1,26 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
-import { db } from '@/lib/db'
+import { supabaseAdmin } from '@/lib/supabase'
 
 // GET all crypto addresses
 export async function GET() {
   try {
-
-    const session = await getSession();
+    const session = await getSession()
     if (!session || (session.role !== 'ADMIN' && session.role !== 'MANAGER')) {
       return NextResponse.json(
         { message: 'Unauthorized' },
         { status: 401 }
-      );
+      )
     }
 
-    const addresses = await db.cryptoAddress.findMany({
-      orderBy: {
-        createdAt: 'desc',
-      },
-    })
+    const { data: addresses, error } = await supabaseAdmin
+      .from('crypto_addresses')
+      .select('*')
+      .order('createdAt', { ascending: false })
 
-    return NextResponse.json({ addresses })
+    if (error) {
+      throw error
+    }
+
+    return NextResponse.json({ addresses: addresses || [] })
   } catch (error) {
     console.error('Fetch crypto addresses error:', error)
     return NextResponse.json(
@@ -33,13 +35,12 @@ export async function GET() {
 // POST - Create new crypto address
 export async function POST(request: NextRequest) {
   try {
-
-    const session = await getSession();
+    const session = await getSession()
     if (!session || session.role !== 'ADMIN') {
       return NextResponse.json(
         { message: 'Unauthorized' },
         { status: 401 }
-      );
+      )
     }
 
     const body = await request.json()
@@ -52,16 +53,22 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const cryptoAddress = await db.cryptoAddress.create({
-      data: {
+    const { data: cryptoAddress, error } = await supabaseAdmin
+      .from('crypto_addresses')
+      .insert({
         currency,
         address,
         network,
         label,
         qrCode,
         isActive: isActive !== undefined ? isActive : true,
-      },
-    })
+      })
+      .select()
+      .single()
+
+    if (error) {
+      throw error
+    }
 
     return NextResponse.json({
       message: 'Crypto address created successfully',

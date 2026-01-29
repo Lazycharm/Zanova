@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/db'
+import { supabaseAdmin } from '@/lib/supabase'
 import { getSession } from '@/lib/auth'
 
 export async function PATCH(
@@ -20,10 +20,16 @@ export async function PATCH(
     if (status) updateData.status = status
     if (priority) updateData.priority = priority
 
-    const ticket = await db.supportTicket.update({
-      where: { id: params.id },
-      data: updateData,
-    })
+    const { data: ticket, error } = await supabaseAdmin
+      .from('support_tickets')
+      .update(updateData)
+      .eq('id', params.id)
+      .select()
+      .single()
+
+    if (error) {
+      throw error
+    }
 
     return NextResponse.json({ success: true, ticket })
   } catch (error) {

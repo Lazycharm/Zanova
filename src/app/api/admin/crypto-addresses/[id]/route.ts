@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
-import { db } from '@/lib/db'
+import { supabaseAdmin } from '@/lib/supabase'
 
 // PUT - Update crypto address
 export async function PUT(
@@ -19,17 +19,24 @@ export async function PUT(
     const body = await request.json()
     const { currency, address, network, label, qrCode, isActive } = body
 
-    const cryptoAddress = await db.cryptoAddress.update({
-      where: { id: params.id },
-      data: {
-        currency,
-        address,
-        network,
-        label,
-        qrCode,
-        isActive,
-      },
-    })
+    const updateData: any = {}
+    if (currency !== undefined) updateData.currency = currency
+    if (address !== undefined) updateData.address = address
+    if (network !== undefined) updateData.network = network
+    if (label !== undefined) updateData.label = label
+    if (qrCode !== undefined) updateData.qrCode = qrCode
+    if (isActive !== undefined) updateData.isActive = isActive
+
+    const { data: cryptoAddress, error } = await supabaseAdmin
+      .from('crypto_addresses')
+      .update(updateData)
+      .eq('id', params.id)
+      .select()
+      .single()
+
+    if (error) {
+      throw error
+    }
 
     return NextResponse.json({
       message: 'Crypto address updated successfully',
@@ -58,9 +65,14 @@ export async function DELETE(
       )
     }
 
-    await db.cryptoAddress.delete({
-      where: { id: params.id },
-    })
+    const { error } = await supabaseAdmin
+      .from('crypto_addresses')
+      .delete()
+      .eq('id', params.id)
+
+    if (error) {
+      throw error
+    }
 
     return NextResponse.json({
       message: 'Crypto address deleted successfully',

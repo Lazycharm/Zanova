@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/db'
+import { supabaseAdmin } from '@/lib/supabase'
 import { getSession } from '@/lib/auth'
 
 export async function POST(
@@ -24,32 +24,35 @@ export async function POST(
     }
 
     // Get admin user email
-    const user = await db.user.findUnique({
-      where: { id: session.userId },
-      select: { email: true },
-    })
+    const { data: user } = await supabaseAdmin
+      .from('users')
+      .select('email')
+      .eq('id', session.userId)
+      .single()
 
     // Create the reply message
-    const reply = await db.ticketMessage.create({
-      data: {
+    const { data: reply, error: replyError } = await supabaseAdmin
+      .from('ticket_messages')
+      .insert({
         ticketId: params.id,
         senderId: session.userId,
         senderEmail: user?.email || 'admin@zalora.com',
         message,
         isFromAdmin: true,
-      },
-    })
+      })
+      .select()
+      .single()
+
+    if (replyError) {
+      throw replyError
+    }
 
     // Update ticket status to IN_PROGRESS if it's OPEN
-    await db.supportTicket.updateMany({
-      where: {
-        id: params.id,
-        status: 'OPEN',
-      },
-      data: {
-        status: 'IN_PROGRESS',
-      },
-    })
+    await supabaseAdmin
+      .from('support_tickets')
+      .update({ status: 'IN_PROGRESS' })
+      .eq('id', params.id)
+      .eq('status', 'OPEN')
 
     return NextResponse.json({ success: true, message: reply })
   } catch (error) {

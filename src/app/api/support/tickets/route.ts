@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/db'
+import { supabaseAdmin } from '@/lib/supabase'
 import { getSession } from '@/lib/auth'
 
 export async function POST(req: NextRequest) {
@@ -29,10 +29,12 @@ export async function POST(req: NextRequest) {
 
     // If authenticated, get user email
     if (userId) {
-      const user = await db.user.findUnique({
-        where: { id: userId },
-        select: { email: true },
-      })
+      const { data: user } = await supabaseAdmin
+        .from('users')
+        .select('email')
+        .eq('id', userId)
+        .single()
+
       if (user) {
         userEmail = user.email
       }
@@ -42,25 +44,37 @@ export async function POST(req: NextRequest) {
     const ticketNumber = `TKT-${Date.now()}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`
 
     // Create support ticket
-    const ticket = await db.supportTicket.create({
-      data: {
+    const { data: ticket, error: ticketError } = await supabaseAdmin
+      .from('support_tickets')
+      .insert({
         ticketNumber,
         userId,
         subject,
         priority,
         status: 'OPEN',
-        messages: {
-          create: {
-            message,
-            senderEmail: userEmail,
-            isFromAdmin: false,
-          },
-        },
-      },
-      include: {
-        messages: true,
-      },
-    })
+      })
+      .select()
+      .single()
+
+    if (ticketError || !ticket) {
+      throw ticketError || new Error('Failed to create ticket')
+    }
+
+    // Create initial message
+    const { error: messageError } = await supabaseAdmin
+      .from('ticket_messages')
+      .insert({
+        ticketId: ticket.id,
+        message,
+        senderEmail: userEmail,
+        isFromAdmin: false,
+      })
+
+    if (messageError) {
+      // Rollback ticket if message creation fails
+      await supabaseAdmin.from('support_tickets').delete().eq('id', ticket.id)
+      throw messageError
+    }
 
     return NextResponse.json({
       success: true,
@@ -90,29 +104,45 @@ export async function GET(req: NextRequest) {
 
     const { userId, role } = session
 
-    // Admins can see all tickets, users see only their own
-    const where = role === 'ADMIN' || role === 'MANAGER' 
-      ? {} 
-      : { userId }
+    // Build query based on role
+    let query = supabaseAdmin
+      .from('support_tickets')
+      .select(`
+        *,
+        user:users!support_tickets_userId_fkey (
+          name,
+          email
+        ),
+        messages:ticket_messages (
+          *
+        )
+      `)
 
-    const tickets = await db.supportTicket.findMany({
-      where,
-      orderBy: { createdAt: 'desc' },
-      include: {
-        user: {
-          select: {
-            name: true,
-            email: true,
-          },
-        },
-        messages: {
-          orderBy: { createdAt: 'desc' },
-          take: 1,
-        },
-      },
+    // Admins can see all tickets, users see only their own
+    if (role !== 'ADMIN' && role !== 'MANAGER') {
+      query = query.eq('userId', userId)
+    }
+
+    const { data: tickets, error } = await query.order('createdAt', { ascending: false })
+
+    if (error) {
+      throw error
+    }
+
+    // Format tickets - get latest message for each
+    const formattedTickets = (tickets || []).map((ticket: any) => {
+      const messages = ticket.messages || []
+      const latestMessage = messages.length > 0 
+        ? messages.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0]
+        : null
+
+      return {
+        ...ticket,
+        messages: latestMessage ? [latestMessage] : [],
+      }
     })
 
-    return NextResponse.json({ tickets })
+    return NextResponse.json({ tickets: formattedTickets })
   } catch (error) {
     console.error('Error fetching tickets:', error)
     return NextResponse.json(

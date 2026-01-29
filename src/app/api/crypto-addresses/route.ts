@@ -1,27 +1,20 @@
 import { NextResponse } from 'next/server'
-import { db } from '@/lib/db'
+import { supabaseAdmin } from '@/lib/supabase'
 
 // GET active crypto addresses for checkout
 export async function GET() {
   try {
-    const addresses = await db.cryptoAddress.findMany({
-      where: {
-        isActive: true,
-      },
-      orderBy: {
-        currency: 'asc',
-      },
-      select: {
-        id: true,
-        currency: true,
-        address: true,
-        network: true,
-        label: true,
-        qrCode: true,
-      },
-    })
+    const { data: addresses, error } = await supabaseAdmin
+      .from('crypto_addresses')
+      .select('id, currency, address, network, label, qrCode')
+      .eq('isActive', true)
+      .order('currency', { ascending: true })
 
-    return NextResponse.json({ addresses })
+    if (error) {
+      throw error
+    }
+
+    return NextResponse.json({ addresses: addresses || [] })
   } catch (error) {
     console.error('Fetch crypto addresses error:', error)
     return NextResponse.json(
