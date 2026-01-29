@@ -1,16 +1,20 @@
-import { db } from '@/lib/db'
+import { supabaseAdmin } from '@/lib/supabase'
 import { SettingsForm } from './settings-form'
 
 export const dynamic = 'force-dynamic'
 
 async function getSettings() {
-  const settings = await db.setting.findMany()
-  
+  const { data: settings, error } = await supabaseAdmin.from('settings').select('*')
+
+  if (error) {
+    throw error
+  }
+
   const settingsMap: Record<string, string> = {}
-  settings.forEach((s) => {
+  ;(settings || []).forEach((s: any) => {
     settingsMap[s.key] = s.value
   })
-  
+
   return settingsMap
 }
 

@@ -1,49 +1,59 @@
 import { redirect } from 'next/navigation'
 import { getCurrentUser } from '@/lib/auth'
-import { db } from '@/lib/db'
+import { supabaseAdmin } from '@/lib/supabase'
 import { UserDetailsClient } from './user-details-client'
 
 export const dynamic = 'force-dynamic'
 
 async function getUserData(userId: string) {
-  const user = await db.user.findUnique({
-    where: { id: userId },
-    include: {
-      shop: {
-        include: {
-          _count: {
-            select: {
-              products: true,
-              orders: true,
-            },
-          },
-        },
-      },
-      _count: {
-        select: {
-          orders: true,
-          addresses: true,
-          reviews: true,
-          favorites: true,
-        },
-      },
-      orders: {
-        take: 5,
-        orderBy: { createdAt: 'desc' },
-        select: {
-          id: true,
-          orderNumber: true,
-          status: true,
-          paymentStatus: true,
-          total: true,
-          createdAt: true,
-        },
-      },
-    },
-  })
+  // Get user with shop
+  const { data: user, error: userError } = await supabaseAdmin
+    .from('users')
+    .select(`
+      *,
+      shops (
+        *,
+        products:products!inner (
+          id
+        ),
+        orders:orders!inner (
+          id
+        )
+      )
+    `)
+    .eq('id', userId)
+    .single()
 
-  if (!user) {
+  if (userError || !user) {
     return null
+  }
+
+  const shop = user.shops && Array.isArray(user.shops) && user.shops.length > 0 ? user.shops[0] : null
+
+  // Get counts
+  const [ordersCount, addressesCount, reviewsCount, favoritesCount, recentOrdersResult] = await Promise.all([
+    supabaseAdmin.from('orders').select('*', { count: 'exact', head: true }).eq('userId', userId),
+    supabaseAdmin.from('addresses').select('*', { count: 'exact', head: true }).eq('userId', userId),
+    supabaseAdmin.from('reviews').select('*', { count: 'exact', head: true }).eq('userId', userId),
+    supabaseAdmin.from('favorites').select('*', { count: 'exact', head: true }).eq('userId', userId),
+    supabaseAdmin
+      .from('orders')
+      .select('id, orderNumber, status, paymentStatus, total, createdAt')
+      .eq('userId', userId)
+      .order('createdAt', { ascending: false })
+      .limit(5),
+  ])
+
+  // Get shop counts if shop exists
+  let shopProductCount = 0
+  let shopOrderCount = 0
+  if (shop) {
+    const [shopProductsCount, shopOrdersCount] = await Promise.all([
+      supabaseAdmin.from('products').select('*', { count: 'exact', head: true }).eq('shopId', shop.id),
+      supabaseAdmin.from('orders').select('*', { count: 'exact', head: true }).eq('shopId', shop.id),
+    ])
+    shopProductCount = shopProductsCount.count || 0
+    shopOrderCount = shopOrdersCount.count || 0
   }
 
   return {
@@ -55,37 +65,37 @@ async function getUserData(userId: string) {
       phone: user.phone,
       role: user.role,
       status: user.status,
-      balance: Number(user.balance),
+      balance: Number(user.balance || 0),
       canSell: user.canSell,
-      emailVerified: user.emailVerified?.toISOString() || null,
-      lastLoginAt: user.lastLoginAt?.toISOString() || null,
+      emailVerified: user.emailVerified || null,
+      lastLoginAt: user.lastLoginAt || null,
       lastLoginIp: user.lastLoginIp,
-      createdAt: user.createdAt.toISOString(),
-      orderCount: user._count.orders,
-      addressCount: user._count.addresses,
-      reviewCount: user._count.reviews,
-      favoriteCount: user._count.favorites,
+      createdAt: user.createdAt,
+      orderCount: ordersCount.count || 0,
+      addressCount: addressesCount.count || 0,
+      reviewCount: reviewsCount.count || 0,
+      favoriteCount: favoritesCount.count || 0,
     },
-    shop: user.shop
+    shop: shop
       ? {
-          id: user.shop.id,
-          name: user.shop.name,
-          slug: user.shop.slug,
-          status: user.shop.status,
-          level: user.shop.level,
-          balance: Number(user.shop.balance),
-          rating: Number(user.shop.rating),
-          productCount: user.shop._count.products,
-          orderCount: user.shop._count.orders,
+          id: shop.id,
+          name: shop.name,
+          slug: shop.slug,
+          status: shop.status,
+          level: shop.level,
+          balance: Number(shop.balance || 0),
+          rating: Number(shop.rating || 0),
+          productCount: shopProductCount,
+          orderCount: shopOrderCount,
         }
       : null,
-    recentOrders: user.orders.map((order) => ({
+    recentOrders: (recentOrdersResult.data || []).map((order: any) => ({
       id: order.id,
       orderNumber: order.orderNumber,
       status: order.status,
       paymentStatus: order.paymentStatus,
-      total: Number(order.total),
-      createdAt: order.createdAt.toISOString(),
+      total: Number(order.total || 0),
+      createdAt: order.createdAt,
     })),
   }
 }

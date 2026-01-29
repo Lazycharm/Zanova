@@ -1,52 +1,57 @@
 import { redirect } from 'next/navigation'
 import { getCurrentUser } from '@/lib/auth'
-import { db } from '@/lib/db'
+import { supabaseAdmin } from '@/lib/supabase'
 import { AccountClient } from './account-client'
 
 export const dynamic = 'force-dynamic'
 
 async function getAccountData(userId: string) {
-  const [orders, favorites, user, userSellingSetting] = await Promise.all([
-    db.order.count({ where: { userId } }),
-    db.favorite.count({ where: { userId } }),
-    db.user.findUnique({
-      where: { id: userId },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        avatar: true,
-        balance: true,
-        role: true,
-        canSell: true,
-        shop: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-      },
-    }),
-    db.setting.findUnique({
-      where: { key: 'user_selling_enabled' },
-    }),
+  const [ordersCount, favoritesCount, userResult, settingResult] = await Promise.all([
+    supabaseAdmin.from('orders').select('*', { count: 'exact', head: true }).eq('userId', userId),
+    supabaseAdmin.from('favorites').select('*', { count: 'exact', head: true }).eq('userId', userId),
+    supabaseAdmin
+      .from('users')
+      .select(`
+        id,
+        name,
+        email,
+        avatar,
+        balance,
+        role,
+        canSell,
+        shops (
+          id,
+          name
+        )
+      `)
+      .eq('id', userId)
+      .single(),
+    supabaseAdmin
+      .from('settings')
+      .select('value')
+      .eq('key', 'user_selling_enabled')
+      .single(),
   ])
 
-  const userSellingEnabled = userSellingSetting?.value === 'true'
+  const user = userResult.data
+  const userSellingEnabled = settingResult.data?.value === 'true'
+  const shop = user?.shops && Array.isArray(user.shops) && user.shops.length > 0 ? user.shops[0] : null
 
   return {
-    orders,
-    favorites,
-    user: user ? {
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      avatar: user.avatar,
-      balance: Number(user.balance),
-      role: user.role,
-      canSell: user.canSell && userSellingEnabled, // Only true if both are enabled
-      shop: user.shop,
-    } : null,
+    orders: ordersCount.count || 0,
+    favorites: favoritesCount.count || 0,
+    user: user
+      ? {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          avatar: user.avatar,
+          balance: Number(user.balance || 0),
+          role: user.role,
+          canSell: user.canSell && userSellingEnabled,
+          shop,
+        }
+      : null,
   }
 }
 
@@ -58,10 +63,5 @@ export default async function AccountPage() {
   }
 
   const data = await getAccountData(currentUser.id)
-
-  if (!data.user) {
-    redirect('/auth/login')
-  }
-
-  return <AccountClient user={data.user} stats={{ orders: data.orders, favorites: data.favorites }} />
+  return <AccountClient {...data} />
 }
