@@ -16,7 +16,7 @@ Set these in Hostinger's control panel → Environment Variables:
 
 ### Required Variables:
 ```
-DATABASE_URL=postgresql://postgres:[PASSWORD]@db.[PROJECT-REF].supabase.co:5432/postgres
+DATABASE_URL=postgresql://prisma.[PROJECT-REF]:[PRISMA-PASSWORD]@[DB-REGION].pooler.supabase.com:5432/postgres
 JWT_SECRET=your-secret-key-here
 NEXT_PUBLIC_APP_URL=https://your-domain.com
 ADMIN_EMAIL=admin@zanova.com
@@ -28,10 +28,11 @@ NODE_ENV=production
 ### Important Notes:
 
 1. **Database Connection (Supabase):**
-   - Use Supabase's **Direct Connection** (port **5432**) - NOT the connection pooler
-   - Hostinger uses traditional Node.js hosting, so persistent connections work fine
-   - Format: `postgresql://postgres:[PASSWORD]@db.[PROJECT-REF].supabase.co:5432/postgres`
-   - Get it from: Supabase Dashboard → Settings → Database → Connection string (Direct connection)
+   - **Recommended:** Use Supabase's **Supavisor Session mode** (port **5432**) with a custom Prisma user
+   - Format: `postgresql://prisma.[PROJECT-REF]:[PRISMA-PASSWORD]@[DB-REGION].pooler.supabase.com:5432/postgres`
+   - **Alternative:** Direct connection: `postgresql://prisma.[PROJECT-REF]:[PRISMA-PASSWORD]@db.[PROJECT-REF].supabase.co:5432/postgres`
+   - Get connection string from: Supabase Dashboard → Settings → Database → Connection string
+   - **IMPORTANT:** Create a custom Prisma user first (see "Supabase Database Setup" section below)
 
 2. **Node Version:**
    - Hostinger supports Node.js 18+
