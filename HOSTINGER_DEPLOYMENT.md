@@ -46,29 +46,25 @@ Before deploying, set up a custom Prisma user in Supabase for better control and
 
 1. Go to your Supabase Dashboard
 2. Open the **SQL Editor**
-3. Run this SQL to create a custom Prisma user:
+3. Copy and paste the SQL from `supabase-setup-prisma-user.sql` file in this repository, OR run this SQL:
 
 ```sql
--- Create custom user for Prisma
 CREATE USER "prisma" WITH PASSWORD 'your_secure_password_here' BYPASSRLS CREATEDB;
-
--- Extend prisma's privileges to postgres (necessary to view changes in Dashboard)
 GRANT "prisma" TO "postgres";
-
--- Grant necessary permissions over the public schema
 GRANT USAGE ON SCHEMA public TO prisma;
 GRANT CREATE ON SCHEMA public TO prisma;
 GRANT ALL ON ALL TABLES IN SCHEMA public TO prisma;
 GRANT ALL ON ALL ROUTINES IN SCHEMA public TO prisma;
 GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO prisma;
-
--- Set default privileges for future tables
 ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT ALL ON TABLES TO prisma;
 ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT ALL ON ROUTINES TO prisma;
 ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT ALL ON SEQUENCES TO prisma;
 ```
 
-**⚠️ Security:** Use a strong password generator for the Prisma user password!
+**⚠️ Important:** 
+- Replace `'your_secure_password_here'` with a strong password (use a password generator)
+- Copy ONLY the SQL commands above, NOT the markdown code block markers (```)
+- Run each command separately if needed, or all at once
 
 ### Step 2: Get Your Connection String
 
