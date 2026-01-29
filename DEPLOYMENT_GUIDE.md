@@ -76,13 +76,29 @@ a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6a7b8c9d0e1f2
 
 ## Database Setup
 
-### 1. Run Database Migrations
+### 1. Create Database Schema
 
-The database schema should already be set up in your Supabase project. If you need to set it up:
+**Step 1:** Open Supabase Dashboard
+- Go to your project → **SQL Editor**
 
-1. Go to Supabase Dashboard → **SQL Editor**
-2. Run your database schema SQL (if you have one)
-3. Or use Supabase migrations if configured
+**Step 2:** Run the Schema SQL
+- Open the `supabase-schema.sql` file from this repository
+- Copy the entire contents
+- Paste into the SQL Editor
+- Click **Run** (or press Ctrl+Enter)
+
+**What this creates:**
+- All required tables (users, products, orders, categories, etc.)
+- All enums (UserRole, OrderStatus, etc.)
+- All indexes for performance
+- Foreign key relationships
+- Triggers for automatic `updatedAt` timestamps
+
+**Important Notes:**
+- The schema uses lowercase table names (users, products, etc.) to match Supabase conventions
+- Column names use camelCase (userId, createdAt, etc.) as expected by the application
+- All tables are created with proper relationships and constraints
+- The schema is idempotent - safe to run multiple times (uses `CREATE TABLE IF NOT EXISTS`)
 
 ### 2. Seed Initial Data
 
