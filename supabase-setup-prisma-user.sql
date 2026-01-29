@@ -3,7 +3,7 @@
 -- Replace 'your_secure_password_here' with a strong password
 
 -- Create custom user for Prisma
-CREATE USER "prisma" WITH PASSWORD 'your_secure_password_here' BYPASSRLS CREATEDB;
+CREATE USER "prisma" WITH PASSWORD 'YurQg8oRDFsUnn' BYPASSRLS CREATEDB;
 
 -- Extend prisma's privileges to postgres (necessary to view changes in Dashboard)
 GRANT "prisma" TO "postgres";

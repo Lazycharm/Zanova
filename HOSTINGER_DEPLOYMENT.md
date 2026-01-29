@@ -68,15 +68,23 @@ ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT ALL ON SEQUENC
 
 ### Step 2: Get Your Connection String
 
-1. In Supabase Dashboard, go to **Settings** → **Database**
-2. Find **Connection string** → **Supavisor Session mode** (port 5432)
-3. The format should be:
-   ```
-   postgres://prisma.[PROJECT-REF]:[PRISMA-PASSWORD]@[DB-REGION].pooler.supabase.com:5432/postgres
-   ```
-4. Replace `[PRISMA-PASSWORD]` with the password you created in Step 1
+1. In Supabase Dashboard, go to **Settings** → **Database** → **Connection string**
+2. **Select "Session pooler"** (for IPv4 compatibility on Hostinger)
+3. Copy the connection string shown (it will look like: `postgresql://postgres:[PASSWORD]@...`)
+4. **Modify it to use the Prisma user:**
+   - Replace `postgres` with `prisma` 
+   - Replace `[PASSWORD]` with your Prisma password (`YurQg8oRDFsUnn` or whatever you set)
+   
+   **Example transformation:**
+   - Original: `postgresql://postgres:[YOUR-PASSWORD]@db.mcqtqdgssnpkbrsyor.supabase.co:5432/postgres`
+   - Modified: `postgresql://prisma:YurQg8oRDFsUnn@db.mcqtqdgssnpkbrsyor.supabase.co:5432/postgres`
+   
+   Or if using Session pooler:
+   - Modified: `postgresql://prisma:YurQg8oRDFsUnn@[DB-REGION].pooler.supabase.com:5432/postgres`
 
-**Note:** For Hostinger (server-based deployment), use **Session mode (port 5432)**, NOT Transaction mode (port 6543).
+5. **Use this modified connection string** in Hostinger environment variables as `DATABASE_URL`
+
+**Note:** For Hostinger, use **Session pooler (port 5432)** for IPv4 compatibility, NOT Direct connection or Transaction mode.
 
 ## Deployment Steps
 
